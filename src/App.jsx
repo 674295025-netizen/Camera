@@ -126,13 +126,17 @@ export default function App() {
   };
 
   const handleGoogleLogout = () => {
+    if (window.google?.accounts?.id) {
+      try {
+        window.google.accounts.id.disableAutoSelect();
+      } catch (e) {}
+    }
     setCurrentUser(null);
     setCurrentRole('user');
     setCurrentTab('catalog');
     setShowAccessDenied(false);
     localStorage.removeItem('lensflow_google_user');
     logActivity('ออกจากระบบ Google', 'auth');
-    alert('ออกจากระบบเรียบร้อยแล้ว');
   };
 
   // Admin Email Management Handlers (Only admins can add/remove other admins)

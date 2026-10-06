@@ -21,16 +21,17 @@ function parseJwt(token) {
 
 export default function GoogleAuthButton({ currentUser, adminEmails, onLogin, onLogout }) {
   const googleBtnRef = useRef(null);
-  const initializedRef = useRef(false);
 
   useEffect(() => {
-    // If logged in, do not render Google button
+    // If currently logged in, nothing to render
     if (currentUser) return;
 
-    const initGoogle = () => {
-      if (window.google?.accounts?.id && googleBtnRef.current && !initializedRef.current) {
+    let isMounted = true;
+
+    const setupGoogleBtn = () => {
+      if (!isMounted || !googleBtnRef.current) return;
+      if (window.google?.accounts?.id) {
         try {
-          initializedRef.current = true;
           window.google.accounts.id.initialize({
             client_id: GOOGLE_CLIENT_ID,
             callback: (response) => {
@@ -52,7 +53,8 @@ export default function GoogleAuthButton({ currentUser, adminEmails, onLogin, on
             }
           });
 
-          // Render only once with explicit Thai locale
+          // Always re-render button into container
+          googleBtnRef.current.innerHTML = '';
           window.google.accounts.id.renderButton(googleBtnRef.current, {
             theme: 'filled_black',
             size: 'medium',
@@ -62,23 +64,25 @@ export default function GoogleAuthButton({ currentUser, adminEmails, onLogin, on
             width: 220
           });
         } catch (err) {
-          console.warn('Google GSI notice:', err);
+          console.warn('Google GSI render error:', err);
         }
       }
     };
 
-    // Check if script is loaded
-    if (window.google?.accounts?.id) {
-      initGoogle();
-    } else {
-      const interval = setInterval(() => {
-        if (window.google?.accounts?.id) {
-          clearInterval(interval);
-          initGoogle();
-        }
-      }, 300);
-      return () => clearInterval(interval);
-    }
+    // Run setup immediately
+    setupGoogleBtn();
+
+    // Check periodically if button hasn't rendered yet (e.g. script still loading or container remounted)
+    const interval = setInterval(() => {
+      if (isMounted && googleBtnRef.current && !googleBtnRef.current.hasChildNodes()) {
+        setupGoogleBtn();
+      }
+    }, 300);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [currentUser, adminEmails, onLogin]);
 
   if (currentUser) {
@@ -87,7 +91,7 @@ export default function GoogleAuthButton({ currentUser, adminEmails, onLogin, on
         <img
           src={currentUser.picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.name}`}
           alt={currentUser.name}
-          className="w-8 h-8 rounded-xl object-cover border border-slate-700 shadow"
+          className="w-8 h-8 rounded-xl object-cover border border-slate-700 shadow shrink-0"
         />
         <div className="text-left hidden sm:block">
           <div className="font-bold text-white text-xs leading-tight flex items-center gap-1.5">
@@ -109,7 +113,7 @@ export default function GoogleAuthButton({ currentUser, adminEmails, onLogin, on
         <button
           onClick={onLogout}
           title="ออกจากระบบ"
-          className="p-1.5 rounded-xl bg-slate-800 hover:bg-rose-900/40 text-slate-400 hover:text-rose-300 transition ml-1"
+          className="p-1.5 rounded-xl bg-slate-800 hover:bg-rose-900/40 text-slate-400 hover:text-rose-300 transition ml-1 shrink-0"
         >
           <LogOut className="w-3.5 h-3.5" />
         </button>
@@ -119,10 +123,9 @@ export default function GoogleAuthButton({ currentUser, adminEmails, onLogin, on
 
   return (
     <div className="flex items-center">
-      {/* Real Google Sign-in button with locked Thai language */}
       <div
         ref={googleBtnRef}
-        className="min-h-[36px] flex items-center justify-center overflow-hidden"
+        className="min-h-[36px] min-w-[210px] flex items-center justify-center"
       ></div>
     </div>
   );
