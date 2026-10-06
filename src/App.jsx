@@ -6,6 +6,7 @@ import CameraCatalog from './components/CameraCatalog.jsx';
 import MyBookings from './components/MyBookings.jsx';
 import StaffInspection from './components/StaffInspection.jsx';
 import EKYCVerification from './components/EKYCVerification.jsx';
+import AdminManagement from './components/AdminManagement.jsx';
 import BookingModal from './components/BookingModal.jsx';
 import CRUDModal from './components/CRUDModal.jsx';
 import {
@@ -14,6 +15,11 @@ import {
   DEFAULT_ACTIVITIES
 } from './data/mockData.js';
 import { ShieldAlert } from 'lucide-react';
+
+const DEFAULT_ADMIN_EMAILS = [
+  '674295025@parichat.skru.ac.th',
+  'seree999@gmail.com'
+];
 
 export default function App() {
   const [gears, setGears] = useState(() => {
@@ -31,18 +37,35 @@ export default function App() {
     return saved ? JSON.parse(saved) : DEFAULT_ACTIVITIES;
   });
 
-  const [currentRole, setCurrentRole] = useState(() => {
-    return localStorage.getItem('lensflow_user_role') || 'admin';
+  // Admin emails whitelist
+  const [adminEmails, setAdminEmails] = useState(() => {
+    const saved = localStorage.getItem('lensflow_admin_emails');
+    return saved ? JSON.parse(saved) : DEFAULT_ADMIN_EMAILS;
   });
 
-  const [currentTab, setCurrentTab] = useState(() => {
-    const role = localStorage.getItem('lensflow_user_role') || 'admin';
-    return role === 'admin' ? 'dashboard' : 'catalog';
-  });
-
+  // Current Google authenticated user
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = localStorage.getItem('lensflow_google_user');
     return saved ? JSON.parse(saved) : null;
+  });
+
+  // Role is STRICTLY derived from authentication - No unauthorized access!
+  const [currentRole, setCurrentRole] = useState(() => {
+    const savedUser = localStorage.getItem('lensflow_google_user');
+    if (savedUser) {
+      const user = JSON.parse(savedUser);
+      return user.role || 'user';
+    }
+    return 'user';
+  });
+
+  const [currentTab, setCurrentTab] = useState(() => {
+    const savedUser = localStorage.getItem('lensflow_google_user');
+    if (savedUser) {
+      const user = JSON.parse(savedUser);
+      return user.role === 'admin' ? 'dashboard' : 'catalog';
+    }
+    return 'catalog';
   });
 
   const [bookingModalGear, setBookingModalGear] = useState(null);
@@ -64,8 +87,8 @@ export default function App() {
   }, [activities]);
 
   useEffect(() => {
-    localStorage.setItem('lensflow_user_role', currentRole);
-  }, [currentRole]);
+    localStorage.setItem('lensflow_admin_emails', JSON.stringify(adminEmails));
+  }, [adminEmails]);
 
   // Log activity helper
   const logActivity = (text, type = 'info') => {
@@ -75,36 +98,75 @@ export default function App() {
     ]);
   };
 
-  // Role switching
-  const handleSwitchRole = (newRole) => {
-    setCurrentRole(newRole);
-    setShowAccessDenied(false);
-    if (newRole === 'admin') {
-      setCurrentTab('dashboard');
-    } else {
-      setCurrentTab('catalog');
-    }
-  };
-
   // Google OAuth Handlers
   const handleGoogleLogin = (userObj) => {
-    setCurrentUser(userObj);
-    localStorage.setItem('lensflow_google_user', JSON.stringify(userObj));
-    handleSwitchRole(userObj.role);
-    logActivity(`เข้าสู่ระบบผ่าน Google สำเร็จ: ${userObj.name} (${userObj.role.toUpperCase()})`, 'auth');
-    alert(`🎉 ยินดีต้อนรับคุณ ${userObj.name}!\nเข้าสู่ระบบสำเร็จในฐานะ [${userObj.role === 'admin' ? 'ผู้ดูแลระบบ (Admin)' : 'ลูกค้าทั่วไป (Customer)'}]`);
+    const cleanEmail = userObj.email.toLowerCase().trim();
+    const isAdmin = adminEmails.some((e) => e.toLowerCase().trim() === cleanEmail);
+    const resolvedRole = isAdmin ? 'admin' : 'user';
+
+    const fullUser = {
+      ...userObj,
+      role: resolvedRole
+    };
+
+    setCurrentUser(fullUser);
+    setCurrentRole(resolvedRole);
+    localStorage.setItem('lensflow_google_user', JSON.stringify(fullUser));
+    setShowAccessDenied(false);
+
+    if (resolvedRole === 'admin') {
+      setCurrentTab('dashboard');
+      alert(`👑 ยินดีต้อนรับผู้ดูแลระบบ!\nคุณ ${userObj.name} (${userObj.email})\nเข้าสู่ระบบหลังบ้านด้วยสิทธิ์ [ADMIN] เรียบร้อยแล้ว`);
+    } else {
+      setCurrentTab('catalog');
+      alert(`👋 ยินดีต้อนรับคุณ ${userObj.name}!\nเข้าสู่ระบบด้วยสิทธิ์ [ลูกค้าทั่วไป (USER)]\nคุณสามารถเลือกจองกล้องและดูประวัติการเช่าได้ทันที`);
+    }
+
+    logActivity(`เข้าสู่ระบบ Google: ${userObj.name} (${resolvedRole.toUpperCase()})`, 'auth');
   };
 
   const handleGoogleLogout = () => {
     setCurrentUser(null);
+    setCurrentRole('user');
+    setCurrentTab('catalog');
+    setShowAccessDenied(false);
     localStorage.removeItem('lensflow_google_user');
-    handleSwitchRole('user');
     logActivity('ออกจากระบบ Google', 'auth');
+    alert('ออกจากระบบเรียบร้อยแล้ว');
+  };
+
+  // Admin Email Management Handlers (Only admins can add/remove other admins)
+  const handleAddAdmin = (emailInput) => {
+    const clean = emailInput.toLowerCase().trim();
+    if (!clean || !clean.includes('@')) {
+      alert('⚠️ กรุณากรอกอีเมลที่ถูกต้อง');
+      return;
+    }
+    if (adminEmails.some((e) => e.toLowerCase().trim() === clean)) {
+      alert('⚠️ อีเมลนี้มีสิทธิ์เป็น Admin อยู่แล้วในระบบ');
+      return;
+    }
+    setAdminEmails((prev) => [...prev, clean]);
+    logActivity(`Admin (${currentUser?.name || 'Owner'}) เพิ่มสิทธิ์ผู้ดูแลระบบให้แก่ ${clean}`, 'admin_mgmt');
+    alert(`✅ เพิ่มสิทธิ์ Admin ให้แก่ "${clean}" เรียบร้อยแล้ว!\nเมื่อผู้ใช้นี้ล็อกอินด้วย Google จะได้รับสิทธิ์ Admin ทันที`);
+  };
+
+  const handleRemoveAdmin = (targetEmail) => {
+    const clean = targetEmail.toLowerCase().trim();
+    if (DEFAULT_ADMIN_EMAILS.some((p) => p.toLowerCase() === clean)) {
+      alert('⚠️ ไม่อนุญาตให้เพิกถอนสิทธิ์ของผู้ดูแลระบบหลัก (System Owner)');
+      return;
+    }
+    if (!window.confirm(`ยืนยันการเพิกถอนสิทธิ์ Admin ของอีเมล ${clean} ใช่หรือไม่?`)) return;
+
+    setAdminEmails((prev) => prev.filter((e) => e.toLowerCase().trim() !== clean));
+    logActivity(`Admin ถอดถอนสิทธิ์ผู้ดูแลระบบ: ${clean}`, 'admin_mgmt');
+    alert(`🗑️ เพิกถอนสิทธิ์ Admin ของ ${clean} เรียบร้อยแล้ว`);
   };
 
   // Tab switching with STRICT ROLE PROTECTION
   const handleSelectTab = (tabId) => {
-    const adminOnlyTabs = ['dashboard', 'crud', 'staff'];
+    const adminOnlyTabs = ['dashboard', 'crud', 'staff', 'admin_mgmt'];
     if (currentRole !== 'admin' && adminOnlyTabs.includes(tabId)) {
       setShowAccessDenied(true);
       setCurrentTab('catalog');
@@ -117,13 +179,11 @@ export default function App() {
   // CRUD Actions
   const handleSaveGear = (gearData) => {
     if (gearData.id) {
-      // Edit
       setGears((prev) =>
         prev.map((g) => (g.id === gearData.id ? { ...g, ...gearData } : g))
       );
       logActivity(`Admin แก้ไขข้อมูลกล้อง: ${gearData.name} (S/N: ${gearData.serial})`, 'update');
     } else {
-      // Create
       const newGear = {
         ...gearData,
         id: 'g_' + Date.now(),
@@ -172,7 +232,7 @@ export default function App() {
   // Booking Actions
   const handleConfirmBooking = (gear, days, rentFee, deposit, totalFee) => {
     const orderId = 'LF-' + Math.floor(1000 + Math.random() * 9000);
-    const customerName = currentUser ? currentUser.name : (currentRole === 'admin' ? 'Admin Booking' : 'สมชาย สายถ่ายภาพ');
+    const customerName = currentUser ? currentUser.name : 'สมชาย สายถ่ายภาพ';
 
     const newBooking = {
       id: orderId,
@@ -190,7 +250,6 @@ export default function App() {
 
     setBookings((prev) => [newBooking, ...prev]);
 
-    // Update gear status to RENTED
     setGears((prev) =>
       prev.map((g) =>
         g.id === gear.id
@@ -251,12 +310,10 @@ export default function App() {
     const gear = gears.find((g) => g.id === gearId);
     if (!gear) return;
 
-    // Reset gear status to available
     setGears((prev) =>
       prev.map((g) => (g.id === gearId ? { ...g, status: 'AVAILABLE' } : g))
     );
 
-    // Mark matching rented booking as completed
     setBookings((prev) =>
       prev.map((b) =>
         b.gearId === gearId && b.status === 'RENTED'
@@ -288,10 +345,10 @@ export default function App() {
       {/* Top Navbar */}
       <Navbar
         currentRole={currentRole}
-        onSwitchRole={handleSwitchRole}
         currentTab={currentTab}
         onSelectTab={handleSelectTab}
         currentUser={currentUser}
+        adminEmails={adminEmails}
         onGoogleLogin={handleGoogleLogin}
         onGoogleLogout={handleGoogleLogout}
       />
@@ -307,16 +364,13 @@ export default function App() {
               <div>
                 <h4 className="font-bold text-white text-base">403 Forbidden: สิทธิ์การเข้าถึงถูกจำกัด</h4>
                 <p className="text-xs text-rose-300">
-                  หน้าแดชบอร์ดและระบบจัดการหลังบ้าน สงวนสิทธิ์เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น บัญชีของคุณคือ <strong>User ทั่วไป</strong>
+                  หน้าแดชบอร์ดและระบบจัดการหลังบ้าน สงวนสิทธิ์เฉพาะ <strong>ผู้ดูแลระบบ (Admin)</strong> ที่ได้รับอนุญาตเท่านั้น กรุณาเข้าสู่ระบบด้วยบัญชี Google ของ Admin
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => handleSwitchRole('admin')}
-              className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition shadow shrink-0"
-            >
-              สลับเป็นสิทธิ์ Admin ทันที
-            </button>
+            <span className="text-xs font-mono px-3 py-1.5 bg-rose-900/60 rounded-xl text-rose-300 border border-rose-500/20 shrink-0">
+              Admin Only Access
+            </span>
           </div>
         </div>
       )}
@@ -355,6 +409,21 @@ export default function App() {
           />
         )}
 
+        {currentTab === 'staff' && currentRole === 'admin' && (
+          <StaffInspection
+            gears={gears}
+            onConfirmReturn={handleStaffReturn}
+          />
+        )}
+
+        {currentTab === 'admin_mgmt' && currentRole === 'admin' && (
+          <AdminManagement
+            adminEmails={adminEmails}
+            onAddAdmin={handleAddAdmin}
+            onRemoveAdmin={handleRemoveAdmin}
+          />
+        )}
+
         {currentTab === 'catalog' && (
           <CameraCatalog
             gears={gears}
@@ -369,13 +438,6 @@ export default function App() {
         {currentTab === 'kyc' && (
           <EKYCVerification
             onVerified={(name) => logActivity(`ผู้เช่า ${name} ยืนยันตัวตน e-KYC สำเร็จ`, 'kyc')}
-          />
-        )}
-
-        {currentTab === 'staff' && currentRole === 'admin' && (
-          <StaffInspection
-            gears={gears}
-            onConfirmReturn={handleStaffReturn}
           />
         )}
       </main>

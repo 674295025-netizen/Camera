@@ -38,8 +38,8 @@
   <!-- Chart.js CDN for Admin Analytics -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <!-- Google Identity Services (Sign in with Google) -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <!-- Google Identity Services (Sign in with Google - Locked Thai Language) -->
+  <script src="https://accounts.google.com/gsi/client?hl=th" async defer></script>
 
   <style>
     body { font-family: 'Plus Jakarta Sans', 'Sarabun', sans-serif; }
@@ -98,16 +98,6 @@
              data-callback="handleGoogleCredentialResponse">
         </div>
         <div class="g_id_signin" data-type="standard" data-size="medium" data-theme="filled_black" data-text="signin_with" data-shape="pill"></div>
-
-        <!-- Quick Role Switcher Button -->
-        <div class="hidden sm:flex items-center bg-slate-900/90 p-1 rounded-2xl border border-slate-800">
-          <button id="role-btn-user" onclick="switchUserRole('user')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white">
-            <i data-lucide="user" class="w-3.5 h-3.5"></i> User
-          </button>
-          <button id="role-btn-admin" onclick="switchUserRole('admin')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md">
-            <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i> Admin
-          </button>
-        </div>
 
         <!-- Active User Badge -->
         <div id="user-badge" class="hidden lg:flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs">
@@ -886,8 +876,11 @@
         const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
         const payload = JSON.parse(decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')));
         
-        const adminEmails = ["674295025@parichat.skru.ac.th", "admin@lensflow.com"];
-        const isAdmin = adminEmails.some(e => e.toLowerCase() === payload.email.toLowerCase()) || payload.email.toLowerCase().includes('admin');
+        const adminEmails = JSON.parse(localStorage.getItem('lensflow_admin_emails')) || [
+          "674295025@parichat.skru.ac.th",
+          "seree999@gmail.com"
+        ];
+        const isAdmin = adminEmails.some(e => e.toLowerCase().trim() === payload.email.toLowerCase().trim());
         
         // Update User UI
         const avatar = document.getElementById('user-avatar');
@@ -899,7 +892,12 @@
         
         switchUserRole(isAdmin ? 'admin' : 'user');
         logActivity(`เข้าสู่ระบบ Google: ${payload.name} (${isAdmin ? 'ADMIN' : 'USER'})`, 'auth');
-        alert(`🎉 ยินดีต้อนรับคุณ ${payload.name}!\nเข้าสู่ระบบผ่าน Google สำเร็จในฐานะ [${isAdmin ? 'ผู้ดูแลระบบ (Admin)' : 'ลูกค้าทั่วไป (Customer)'}]`);
+        
+        if (isAdmin) {
+          alert(`👑 ยินดีต้อนรับผู้ดูแลระบบ!\nคุณ ${payload.name} (${payload.email})\nเข้าสู่ระบบหลังบ้านด้วยสิทธิ์ [ADMIN] เรียบร้อยแล้ว`);
+        } else {
+          alert(`👋 ยินดีต้อนรับคุณ ${payload.name}!\nเข้าสู่ระบบด้วยสิทธิ์ [ลูกค้าทั่วไป (USER)]\nคุณสามารถเลือกจองกล้องและดูประวัติการเช่าได้ทันที`);
+        }
       } catch (err) {
         console.error('Google Auth error:', err);
       }
@@ -910,39 +908,37 @@
       currentRole = role;
       saveState();
 
-      // Update Top Button UI
-      const userBtn = document.getElementById('role-btn-user');
-      const adminBtn = document.getElementById('role-btn-admin');
-      const userBadge = document.getElementById('user-badge');
       const userAvatar = document.getElementById('user-avatar');
       const userName = document.getElementById('user-display-name');
       const roleLabel = document.getElementById('user-role-label');
       const deniedBanner = document.getElementById('access-denied-banner');
 
-      deniedBanner.classList.add('hidden');
+      if (deniedBanner) deniedBanner.classList.add('hidden');
 
       if (role === 'admin') {
-        adminBtn.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md";
-        userBtn.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white";
-        
-        userAvatar.className = "w-7 h-7 rounded-lg bg-purple-600 flex items-center justify-center text-white font-bold text-xs shadow";
-        userAvatar.innerText = "A";
-        userName.innerText = "Admin System";
-        roleLabel.innerText = "Administrator (เจ้าของร้าน)";
-        roleLabel.className = "text-[10px] text-purple-400 font-semibold uppercase";
+        if (userAvatar && !userAvatar.querySelector('img')) {
+          userAvatar.className = "w-7 h-7 rounded-lg bg-purple-600 flex items-center justify-center text-white font-bold text-xs shadow";
+          userAvatar.innerText = "A";
+        }
+        if (userName && userName.innerText === 'สมชาย สายถ่ายภาพ') userName.innerText = "Admin System";
+        if (roleLabel) {
+          roleLabel.innerText = "Administrator (เจ้าของร้าน)";
+          roleLabel.className = "text-[10px] text-purple-400 font-semibold uppercase";
+        }
 
         // Render Admin Navigation
         renderNavigation('admin');
         switchTab('dashboard');
       } else {
-        userBtn.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-blue-600 text-white shadow-md";
-        adminBtn.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white";
-        
-        userAvatar.className = "w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-xs shadow";
-        userAvatar.innerText = "U";
-        userName.innerText = "สมชาย สายถ่ายภาพ";
-        roleLabel.innerText = "Customer (ลูกค้าทั่วไป)";
-        roleLabel.className = "text-[10px] text-cyan-400 font-semibold uppercase";
+        if (userAvatar && !userAvatar.querySelector('img')) {
+          userAvatar.className = "w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-xs shadow";
+          userAvatar.innerText = "U";
+        }
+        if (userName && userName.innerText === 'Admin System') userName.innerText = "สมชาย สายถ่ายภาพ";
+        if (roleLabel) {
+          roleLabel.innerText = "Customer (ลูกค้าทั่วไป)";
+          roleLabel.className = "text-[10px] text-cyan-400 font-semibold uppercase";
+        }
 
         // Render User Navigation (DASHBOARD & CRUD ARE STRICTLY HIDDEN)
         renderNavigation('user');

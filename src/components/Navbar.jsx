@@ -7,20 +7,21 @@ import {
   Search,
   ShoppingBag,
   ShieldCheck,
-  User,
-  ShieldAlert
+  Users
 } from 'lucide-react';
 import GoogleAuthButton from './GoogleAuthButton.jsx';
 
 export default function Navbar({
   currentRole,
-  onSwitchRole,
   currentTab,
   onSelectTab,
   currentUser,
+  adminEmails,
   onGoogleLogin,
   onGoogleLogout
 }) {
+  const isAdmin = currentRole === 'admin';
+
   return (
     <header className="sticky top-0 z-40 glass-panel border-b border-slate-800/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
@@ -28,7 +29,7 @@ export default function Navbar({
         {/* Brand Logo */}
         <div
           className="flex items-center gap-3 cursor-pointer select-none"
-          onClick={() => onSelectTab(currentRole === 'admin' ? 'dashboard' : 'catalog')}
+          onClick={() => onSelectTab(isAdmin ? 'dashboard' : 'catalog')}
         >
           <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/25">
             <Camera className="w-6 h-6 text-white" />
@@ -48,9 +49,9 @@ export default function Navbar({
           </div>
         </div>
 
-        {/* Navigation Bar - ROLE PROTECTED */}
+        {/* Navigation Bar - STRICTLY PROTECTED FOR ADMIN ONLY */}
         <nav className="hidden md:flex items-center gap-1 bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800/80">
-          {currentRole === 'admin' ? (
+          {isAdmin ? (
             <>
               <button
                 onClick={() => onSelectTab('dashboard')}
@@ -81,6 +82,16 @@ export default function Navbar({
                 }`}
               >
                 <ClipboardCheck className="w-3.5 h-3.5" /> ตรวจรับคืน (Return)
+              </button>
+              <button
+                onClick={() => onSelectTab('admin_mgmt')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  currentTab === 'admin_mgmt'
+                    ? 'bg-purple-600 text-white shadow'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5" /> จัดการสิทธิ์ Admin
               </button>
               <button
                 onClick={() => onSelectTab('catalog')}
@@ -129,47 +140,21 @@ export default function Navbar({
           )}
         </nav>
 
-        {/* Right Section: Google Sign-In & Role Widget */}
+        {/* Right Section: Strictly Google Sign-in / Profile (Simulator Button Removed) */}
         <div className="flex items-center gap-3">
-          
-          {/* Google Sign-In Component */}
           <GoogleAuthButton
             currentUser={currentUser}
+            adminEmails={adminEmails}
             onLogin={onGoogleLogin}
             onLogout={onGoogleLogout}
           />
-
-          {/* Quick Role Switcher (Simulator) */}
-          <div className="hidden sm:flex items-center bg-slate-900/90 p-1 rounded-2xl border border-slate-800">
-            <button
-              onClick={() => onSwitchRole('user')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                currentRole === 'user'
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <User className="w-3.5 h-3.5" /> User
-            </button>
-            <button
-              onClick={() => onSwitchRole('admin')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                currentRole === 'admin'
-                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <ShieldAlert className="w-3.5 h-3.5" /> Admin
-            </button>
-          </div>
-
         </div>
 
       </div>
 
       {/* Mobile Nav */}
       <div className="flex md:hidden items-center justify-around bg-slate-900/95 py-2.5 border-t border-slate-800 px-2 overflow-x-auto">
-        {currentRole === 'admin' ? (
+        {isAdmin ? (
           <>
             <button
               onClick={() => onSelectTab('dashboard')}
@@ -194,6 +179,14 @@ export default function Navbar({
               }`}
             >
               Return
+            </button>
+            <button
+              onClick={() => onSelectTab('admin_mgmt')}
+              className={`px-3 py-1 rounded-xl text-xs font-bold ${
+                currentTab === 'admin_mgmt' ? 'bg-purple-600 text-white' : 'text-slate-400'
+              }`}
+            >
+              Admin สิทธิ์
             </button>
             <button
               onClick={() => onSelectTab('catalog')}
