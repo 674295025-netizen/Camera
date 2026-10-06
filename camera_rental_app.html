@@ -1,0 +1,1810 @@
+<!DOCTYPE html>
+<html lang="th" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LENSFLOW - ระบบบริหารจัดการและเช่ากล้องอัจฉริยะ (Camera Rental & Management)</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f7ff',
+              100: '#e0effe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              accent: '#06b6d4'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Chart.js CDN for Admin Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body { font-family: 'Plus Jakarta Sans', 'Sarabun', sans-serif; }
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-card {
+      background: rgba(30, 41, 59, 0.65);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .glass-card:hover {
+      border-color: rgba(59, 130, 246, 0.35);
+      box-shadow: 0 10px 25px -10px rgba(59, 130, 246, 0.25);
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0b1120; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen selection:bg-blue-500 selection:text-white pb-16">
+
+  <!-- ================= TOP HEADER / NAVIGATION ================= -->
+  <header class="sticky top-0 z-40 glass-panel border-b border-slate-800/80">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+      
+      <!-- Brand Logo -->
+      <div class="flex items-center gap-3 cursor-pointer" onclick="handleLogoClick()">
+        <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/25">
+          <i data-lucide="camera" class="w-6 h-6 text-white"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xl font-extrabold bg-gradient-to-r from-white via-slate-100 to-blue-400 bg-clip-text text-transparent">LENSFLOW</span>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-semibold border border-blue-500/30">v2.0 Pro</span>
+          </div>
+          <span class="text-[11px] text-cyan-400 font-medium block tracking-wider uppercase">Camera Rental Platform</span>
+        </div>
+      </div>
+
+      <!-- Navigation Bar (Role Protected) -->
+      <nav id="nav-container" class="hidden md:flex items-center gap-1 bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800/80">
+        <!-- Rendered dynamically based on current user role -->
+      </nav>
+
+      <!-- User Role Selector & Profile Widget -->
+      <div class="flex items-center gap-3">
+        
+        <!-- Quick Role Switcher Button -->
+        <div class="flex items-center bg-slate-900/90 p-1 rounded-2xl border border-slate-800">
+          <button id="role-btn-user" onclick="switchUserRole('user')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white">
+            <i data-lucide="user" class="w-3.5 h-3.5"></i> User
+          </button>
+          <button id="role-btn-admin" onclick="switchUserRole('admin')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md">
+            <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i> Admin
+          </button>
+        </div>
+
+        <!-- Active User Badge -->
+        <div id="user-badge" class="hidden lg:flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs">
+          <div id="user-avatar" class="w-7 h-7 rounded-lg bg-purple-600 flex items-center justify-center text-white font-bold text-xs shadow">
+            A
+          </div>
+          <div class="text-left">
+            <div id="user-display-name" class="font-bold text-slate-200 leading-tight">Admin System</div>
+            <div id="user-role-label" class="text-[10px] text-purple-400 font-semibold uppercase">Administrator</div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Mobile Navigation Drawer -->
+    <div id="mobile-nav" class="flex md:hidden items-center justify-around bg-slate-900/95 py-2.5 border-t border-slate-800 px-2 overflow-x-auto">
+      <!-- Injected dynamically -->
+    </div>
+  </header>
+
+  <!-- ================= ACCESS DENIED ALERT BANNER (If User tries to breach) ================= -->
+  <div id="access-denied-banner" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+    <div class="bg-rose-950/80 border border-rose-500/40 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-rose-200">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-rose-600/30 text-rose-400 flex items-center justify-center shrink-0 border border-rose-500/30">
+          <i data-lucide="shield-x" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h4 class="font-bold text-white text-base">403 Forbidden: สิทธิ์การเข้าถึงถูกจำกัด</h4>
+          <p class="text-xs text-rose-300">หน้าแดชบอร์ดและระบบจัดการหลังบ้าน สงวนสิทธิ์เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น บัญชีของคุณคือ <strong>User ทั่วไป</strong></p>
+        </div>
+      </div>
+      <button onclick="switchUserRole('admin')" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition shadow shrink-0">
+        สลับเป็นสิทธิ์ Admin ทันที
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= MAIN CONTENT CONTAINER ================= -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+
+    <!-- =================================================================== -->
+    <!-- SECTION 1: ADMIN DASHBOARD (EXCLUSIVELY FOR ADMIN)                  -->
+    <!-- =================================================================== -->
+    <section id="section-dashboard" class="tab-section space-y-6">
+      
+      <!-- Dashboard Top Header Bar -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/60 p-6 rounded-2xl border border-slate-800">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30 uppercase tracking-wider">
+              Admin Exclusive Portal
+            </span>
+            <span class="text-xs text-slate-400" id="dash-current-time">อัปเดตข้อมูล Real-time</span>
+          </div>
+          <h1 class="text-2xl font-extrabold text-white mt-1 flex items-center gap-2">
+            <i data-lucide="layout-dashboard" class="w-7 h-7 text-blue-400"></i> แดชบอร์ดภาพรวมระบบเช่ากล้อง
+          </h1>
+          <p class="text-xs text-slate-400 mt-1">ติดตามรายได้, ตรวจสอบสถานะอุปกรณ์, อนุมัติคิวจอง และวิเคราะห์แนวโน้มธุรกิจ</p>
+        </div>
+        <div class="flex items-center gap-2.5 flex-wrap">
+          <button onclick="openAddCameraModal()" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition shadow-lg shadow-blue-600/25">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i> เพิ่มกล้องใหม่ (CRUD)
+          </button>
+          <button onclick="resetDemoData()" class="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition border border-slate-700">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> คืนค่า Demo Data
+          </button>
+        </div>
+      </div>
+
+      <!-- 6 KPI METRICS CARDS -->
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
+        
+        <!-- Card 1: Revenue -->
+        <div class="glass-card p-4 rounded-2xl relative overflow-hidden">
+          <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-[11px] font-bold uppercase tracking-wider">รายได้รวมสะสม</span>
+            <div class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+              <i data-lucide="circle-dollar-sign" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div id="kpi-revenue" class="text-xl font-extrabold text-white">฿0</div>
+          <span class="text-[10px] text-emerald-400 font-semibold block mt-1 flex items-center gap-1">
+            <i data-lucide="trending-up" class="w-3 h-3"></i> +18.5% จากเป้าหมาย
+          </span>
+        </div>
+
+        <!-- Card 2: Active Rentals -->
+        <div class="glass-card p-4 rounded-2xl relative overflow-hidden">
+          <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-[11px] font-bold uppercase tracking-wider">กำลังถูกเช่า</span>
+            <div class="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
+              <i data-lucide="camera" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div id="kpi-rented" class="text-xl font-extrabold text-cyan-400">0 รายการ</div>
+          <span class="text-[10px] text-slate-400 font-medium block mt-1">อยู่ในมือลูกค้า</span>
+        </div>
+
+        <!-- Card 3: Available Inventory -->
+        <div class="glass-card p-4 rounded-2xl relative overflow-hidden">
+          <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-[11px] font-bold uppercase tracking-wider">พร้อมให้เช่า</span>
+            <div class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+              <i data-lucide="check-circle" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div id="kpi-available" class="text-xl font-extrabold text-emerald-400">0 รายการ</div>
+          <span class="text-[10px] text-slate-400 font-medium block mt-1">พร้อมรับออเดอร์ทันที</span>
+        </div>
+
+        <!-- Card 4: Pending Bookings -->
+        <div class="glass-card p-4 rounded-2xl relative overflow-hidden">
+          <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-[11px] font-bold uppercase tracking-wider">รออนุมัติส่งมอบ</span>
+            <div class="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
+              <i data-lucide="clock" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div id="kpi-pending" class="text-xl font-extrabold text-amber-400">0 รายการ</div>
+          <span class="text-[10px] text-amber-400/90 font-medium block mt-1">ต้องตรวจเช็คคิว</span>
+        </div>
+
+        <!-- Card 5: Escrow Deposit -->
+        <div class="glass-card p-4 rounded-2xl relative overflow-hidden">
+          <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-[11px] font-bold uppercase tracking-wider">เงินมัดจำคงค้าง</span>
+            <div class="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+              <i data-lucide="shield" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div id="kpi-deposit" class="text-xl font-extrabold text-indigo-300">฿0</div>
+          <span class="text-[10px] text-slate-400 font-medium block mt-1">คืนเมื่ออุปกรณ์กลับมา</span>
+        </div>
+
+        <!-- Card 6: Maintenance -->
+        <div class="glass-card p-4 rounded-2xl relative overflow-hidden">
+          <div class="flex items-center justify-between text-slate-400 mb-2">
+            <span class="text-[11px] font-bold uppercase tracking-wider">ส่งซ่อมบำรุง</span>
+            <div class="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center">
+              <i data-lucide="wrench" class="w-4 h-4"></i>
+            </div>
+          </div>
+          <div id="kpi-maintenance" class="text-xl font-extrabold text-rose-400">0 รายการ</div>
+          <span class="text-[10px] text-rose-400/80 font-medium block mt-1">Out of Service</span>
+        </div>
+
+      </div>
+
+      <!-- ANALYTICS CHARTS SECTION -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Chart 1: Monthly Revenue Trend -->
+        <div class="glass-panel p-6 rounded-2xl lg:col-span-2 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <i data-lucide="bar-chart-3" class="w-5 h-5 text-blue-400"></i> แนวโน้มรายได้และจำนวนครั้งการเช่า (Monthly Revenue & Rental Trend)
+              </h3>
+              <p class="text-xs text-slate-400">สถิติเปรียบเทียบย้อนหลัง 6 เดือนและเป้าหมาย</p>
+            </div>
+            <span class="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+              สถานะ: เติบโตต่อเนื่อง
+            </span>
+          </div>
+          <div class="h-64 relative">
+            <canvas id="revenueChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart 2: Inventory Status Doughnut -->
+        <div class="glass-panel p-6 rounded-2xl space-y-4">
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <i data-lucide="pie-chart" class="w-5 h-5 text-cyan-400"></i> สัดส่วนสถานะอุปกรณ์
+            </h3>
+            <p class="text-xs text-slate-400">Inventory Distribution (พร้อมเช่า/เช่า/ซ่อม)</p>
+          </div>
+          <div class="h-56 relative flex items-center justify-center">
+            <canvas id="statusChart"></canvas>
+          </div>
+          <div class="grid grid-cols-3 gap-2 text-center text-xs pt-2 border-t border-slate-800">
+            <div>
+              <span class="block text-slate-400 text-[10px]">พร้อมเช่า</span>
+              <strong id="stat-avail-pct" class="text-emerald-400 font-bold">-</strong>
+            </div>
+            <div>
+              <span class="block text-slate-400 text-[10px]">ถูกเช่า</span>
+              <strong id="stat-rent-pct" class="text-cyan-400 font-bold">-</strong>
+            </div>
+            <div>
+              <span class="block text-slate-400 text-[10px]">ส่งซ่อม</span>
+              <strong id="stat-maint-pct" class="text-rose-400 font-bold">-</strong>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- LIVE BOOKINGS QUEUE & QUICK ADMIN ACTIONS -->
+      <div class="glass-panel p-6 rounded-2xl space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <i data-lucide="clipboard-list" class="w-5 h-5 text-indigo-400"></i> คิวการจองอุปกรณ์ล่าสุด (Live Rental Queue & Approvals)
+            </h3>
+            <p class="text-xs text-slate-400">อนุมัติการส่งมอบกล้อง, ตรวจสอบสถานะการชำระเงิน, และส่งต่อรับคืน</p>
+          </div>
+          <span class="text-xs text-slate-400 font-mono">Real-time Data Sync</span>
+        </div>
+
+        <div class="overflow-x-auto rounded-xl border border-slate-800">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-900/90 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+              <tr>
+                <th class="py-3 px-4">รหัสการจอง (Order ID)</th>
+                <th class="py-3 px-4">ผู้เช่า (Customer)</th>
+                <th class="py-3 px-4">อุปกรณ์ (Camera / Gear)</th>
+                <th class="py-3 px-4">ระยะเวลาเช่า</th>
+                <th class="py-3 px-4">ยอดรวม (ค่าเช่า+มัดจำ)</th>
+                <th class="py-3 px-4">สถานะคำสั่งซื้อ</th>
+                <th class="py-3 px-4 text-center">การจัดการ (Action)</th>
+              </tr>
+            </thead>
+            <tbody id="dash-booking-table" class="divide-y divide-slate-800/60 font-sans">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- POPULAR GEARS & RECENT AUDIT LOG -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Top Popular Cameras -->
+        <div class="glass-panel p-6 rounded-2xl space-y-4">
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <i data-lucide="award" class="w-5 h-5 text-amber-400"></i> อุปกรณ์ยอดนิยม 3 อันดับแรก (Top Rented Gear)
+          </h3>
+          <div id="dash-popular-list" class="space-y-3">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Activity Audit Log -->
+        <div class="glass-panel p-6 rounded-2xl space-y-4">
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <i data-lucide="activity" class="w-5 h-5 text-emerald-400"></i> บันทึกกิจกรรมของระบบ (System Activity Log)
+          </h3>
+          <div id="dash-activity-log" class="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- SECTION 2: CRUD EQUIPMENT MANAGEMENT (ADMIN ONLY)                   -->
+    <!-- =================================================================== -->
+    <section id="section-crud" class="tab-section hidden space-y-6">
+      
+      <!-- CRUD Control Bar -->
+      <div class="glass-panel p-6 rounded-2xl space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30 uppercase tracking-wider">
+                Admin CRUD System
+              </span>
+            </div>
+            <h2 class="text-2xl font-extrabold text-white mt-1 flex items-center gap-2">
+              <i data-lucide="database" class="w-7 h-7 text-cyan-400"></i> จัดการฐานข้อมูลกล้องและอุปกรณ์ (Equipment Management)
+            </h2>
+            <p class="text-xs text-slate-400">เพิ่มรายการกล้องใหม่, แก้ไขราคา/ข้อมูลสเปก, ปรับสถานะ, และลบรายการจากระบบ</p>
+          </div>
+          <button onclick="openAddCameraModal()" class="px-5 py-3 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white rounded-xl text-sm font-bold flex items-center gap-2 transition shadow-lg shadow-blue-500/25">
+            <i data-lucide="plus-circle" class="w-5 h-5"></i> เพิ่มกล้อง / อุปกรณ์ใหม่
+          </button>
+        </div>
+
+        <!-- CRUD Filters & Search -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-3 border-t border-slate-800">
+          <div>
+            <input type="text" id="crud-search" oninput="renderCRUDTable()" placeholder="🔍 ค้นหาชื่อรุ่น หรือ Serial No..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500">
+          </div>
+          <div>
+            <select id="crud-filter-brand" onchange="renderCRUDTable()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+              <option value="ALL">ทุกยี่ห้อ (All Brands)</option>
+              <option value="Sony">Sony</option>
+              <option value="Canon">Canon</option>
+              <option value="Fujifilm">Fujifilm</option>
+              <option value="Nikon">Nikon</option>
+              <option value="DJI">DJI</option>
+            </select>
+          </div>
+          <div>
+            <select id="crud-filter-status" onchange="renderCRUDTable()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+              <option value="ALL">ทุกสถานะ (All Status)</option>
+              <option value="AVAILABLE">พร้อมเช่า (AVAILABLE)</option>
+              <option value="RENTED">ถูกเช่าอยู่ (RENTED)</option>
+              <option value="MAINTENANCE">ซ่อมบำรุง (MAINTENANCE)</option>
+            </select>
+          </div>
+          <div>
+            <select id="crud-filter-category" onchange="renderCRUDTable()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+              <option value="ALL">ทุกหมวดหมู่ (All Categories)</option>
+              <option value="Camera">กล้องถ่ายภาพ (Camera)</option>
+              <option value="Lens">เลนส์ (Lens)</option>
+              <option value="Accessory">อุปกรณ์เสริม / กิมบอล (Accessory)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Equipment CRUD Table -->
+      <div class="glass-panel rounded-2xl overflow-hidden border border-slate-800">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-900/90 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+              <tr>
+                <th class="py-3.5 px-4">รูปภาพ</th>
+                <th class="py-3.5 px-4">ชื่อรุ่นและยี่ห้อ</th>
+                <th class="py-3.5 px-4">Serial Number</th>
+                <th class="py-3.5 px-4">หมวดหมู่ / Mount</th>
+                <th class="py-3.5 px-4">ค่าเช่า / วัน</th>
+                <th class="py-3.5 px-4">เงินมัดจำ</th>
+                <th class="py-3.5 px-4">สถานะอุปกรณ์</th>
+                <th class="py-3.5 px-4 text-center">จัดการ (Actions)</th>
+              </tr>
+            </thead>
+            <tbody id="crud-table-body" class="divide-y divide-slate-800/70 font-sans">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- Table Footer Info -->
+        <div class="p-4 bg-slate-900/50 border-t border-slate-800 text-xs text-slate-400 flex items-center justify-between">
+          <span id="crud-count-label">กำลังแสดงรายการกล้อง</span>
+          <span class="text-[11px] text-slate-500">รองรับระบบบันทึกแบบ LocalStorage อัตโนมัติ</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- SECTION 3: CATALOG & SEARCH (CUSTOMER + ADMIN PREVIEW)              -->
+    <!-- =================================================================== -->
+    <section id="section-catalog" class="tab-section hidden space-y-6">
+      
+      <!-- Catalog Search & Filter Bar -->
+      <div class="glass-panel p-6 rounded-2xl shadow-2xl space-y-4">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div>
+            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+              <i data-lucide="sliders-horizontal" class="w-5 h-5 text-blue-400"></i> ค้นหาอุปกรณ์ตามวันใช้งาน & Lens Mount
+            </h2>
+            <p class="text-xs text-slate-400">เลือกรุ่นกล้อง ตรวจสอบวันว่างแบบ Real-time ล็อกคิวอัตโนมัติ 15 นาที</p>
+          </div>
+          <div class="flex items-center gap-2 w-full md:w-auto">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">วันเช่า:</span>
+            <input type="date" id="rental-start-date" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+            <span class="text-slate-500 text-xs">ถึง</span>
+            <input type="date" id="rental-end-date" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500">
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2 border-t border-slate-800">
+          <select id="filter-brand" onchange="filterGear()" class="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200">
+            <option value="ALL">ทุกยี่ห้อ (All Brands)</option>
+            <option value="Sony">Sony</option>
+            <option value="Canon">Canon</option>
+            <option value="Fujifilm">Fujifilm</option>
+            <option value="Nikon">Nikon</option>
+            <option value="DJI">DJI</option>
+          </select>
+          <select id="filter-mount" onchange="filterGear()" class="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200">
+            <option value="ALL">ทุก Lens Mount</option>
+            <option value="E-Mount">Sony E-Mount</option>
+            <option value="RF-Mount">Canon RF-Mount</option>
+            <option value="X-Mount">Fuji X-Mount</option>
+            <option value="Z-Mount">Nikon Z-Mount</option>
+            <option value="Universal">Universal / Gimbal</option>
+          </select>
+          <select id="filter-category" onchange="filterGear()" class="bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200">
+            <option value="ALL">ทุกประเภทอุปกรณ์</option>
+            <option value="Camera">กล้องถ่ายภาพ (Camera Body)</option>
+            <option value="Lens">เลนส์ (Lens)</option>
+            <option value="Accessory">อุปกรณ์เสริม / กิมบอล</option>
+          </select>
+          <button onclick="resetCatalogFilters()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl py-2.5 text-xs transition-all flex items-center justify-center gap-2">
+            <i data-lucide="rotate-ccw" class="w-4 h-4"></i> ล้างตัวกรอง
+          </button>
+        </div>
+      </div>
+
+      <!-- Equipment Grid -->
+      <div id="gear-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Dynamic Cards rendered via JS -->
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- SECTION 4: MY BOOKINGS (CUSTOMER TAB)                               -->
+    <!-- =================================================================== -->
+    <section id="section-mybookings" class="tab-section hidden space-y-6">
+      <div class="glass-panel p-6 rounded-2xl space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+              <i data-lucide="shopping-bag" class="w-5 h-5 text-cyan-400"></i> รายการจองของฉัน (My Rentals & Orders)
+            </h2>
+            <p class="text-xs text-slate-400">ตรวจสอบประวัติการจอง สถานะการส่งมอบ และเอกสารยืนยัน</p>
+          </div>
+          <span class="px-3 py-1 bg-blue-500/10 text-blue-400 rounded-xl text-xs font-bold border border-blue-500/20">
+            Customer Portal
+          </span>
+        </div>
+
+        <div id="my-bookings-container" class="space-y-3 pt-2">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- SECTION 5: e-KYC VERIFICATION SIMULATOR                             -->
+    <!-- =================================================================== -->
+    <section id="section-kyc" class="tab-section hidden space-y-6">
+      <div class="glass-panel p-8 rounded-2xl max-w-3xl mx-auto space-y-6">
+        <div class="text-center space-y-2">
+          <div class="w-16 h-16 bg-blue-600/20 text-blue-400 rounded-2xl flex items-center justify-center mx-auto border border-blue-500/30">
+            <i data-lucide="shield-check" class="w-8 h-8"></i>
+          </div>
+          <h2 class="text-2xl font-bold text-white">ระบบยืนยันตัวตนผู้เช่า (e-KYC Verification)</h2>
+          <p class="text-slate-400 text-xs max-w-lg mx-auto">ตามกฎระเบียบความปลอดภัย BR-01 ผู้เช่าต้องผ่านการยืนยันตัวตนด้วยบัตรประชาชนก่อนทำรายการจองครั้งแรก</p>
+        </div>
+
+        <form onsubmit="handleKYCSubmit(event)" class="space-y-5">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-2">ชื่อ-นามสกุล ตามบัตรประชาชน</label>
+              <input type="text" id="kyc-fullname" value="สมชาย สายถ่ายภาพ" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-xs text-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-2">เลขบัตรประชาชน 13 หลัก</label>
+              <input type="text" id="kyc-idnum" value="1-1004-99887-12-3" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-xs text-white">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="border-2 border-dashed border-slate-700 rounded-2xl p-6 text-center hover:border-blue-500 transition-all cursor-pointer bg-slate-900/50">
+              <i data-lucide="id-card" class="w-10 h-10 text-slate-500 mx-auto mb-2"></i>
+              <span class="text-xs text-slate-300 font-semibold block">อัปโหลดรูปหน้าบัตรประชาชน</span>
+              <span class="text-[10px] text-slate-500 block">รองรับ JPG/PNG ไม่เกิน 5MB (Encrypted AES-256)</span>
+            </div>
+            <div class="border-2 border-dashed border-slate-700 rounded-2xl p-6 text-center hover:border-blue-500 transition-all cursor-pointer bg-slate-900/50">
+              <i data-lucide="user-check" class="w-10 h-10 text-slate-500 mx-auto mb-2"></i>
+              <span class="text-xs text-slate-300 font-semibold block">อัปโหลดรูป Selfie ถือคู่กับบัตร</span>
+              <span class="text-[10px] text-slate-500 block">ใบหน้าเห็นชัดเจน ไม่สวมหมวก/แว่นดำ</span>
+            </div>
+          </div>
+
+          <div id="kyc-alert" class="hidden p-4 rounded-xl text-xs font-medium"></div>
+
+          <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold rounded-xl shadow-lg shadow-blue-500/25 transition-all text-xs">
+            ส่งข้อมูลยืนยันตัวตน (Submit e-KYC)
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- SECTION 6: STAFF INSPECTION & RETURN SIMULATOR                      -->
+    <!-- =================================================================== -->
+    <section id="section-staff" class="tab-section hidden space-y-6">
+      <div class="glass-panel p-8 rounded-2xl max-w-4xl mx-auto space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div>
+            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+              <i data-lucide="clipboard-check" class="w-6 h-6 text-cyan-400"></i> Staff Return Check-in & Deposit Calculator
+            </h2>
+            <p class="text-xs text-slate-400">จำลองการตรวจรับคืนกล้อง คิดค่าปรับคืนสาย (BR-04) และคำนวณเงินมัดจำคืนสุทธิ (BR-05)</p>
+          </div>
+          <span class="px-3 py-1 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-lg text-xs font-bold">
+            Staff Portal
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-900/80 p-6 rounded-2xl border border-slate-800">
+          <div class="space-y-4">
+            <h3 class="text-xs font-bold text-slate-200 uppercase tracking-wider">1. กำหนดเวลาและข้อมูลเช่า</h3>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">อุปกรณ์ที่คืน:</label>
+              <select id="sim-gear" onchange="recalculateSettlement()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                <!-- Dynamically populated from gears list -->
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">ระยะเวลาคืนสาย (Late Return Hours):</label>
+              <select id="sim-hours" onchange="recalculateSettlement()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white">
+                <option value="0">ตรงเวลา (On Time - Grace Period)</option>
+                <option value="2.5">คืนสาย 2.5 ชั่วโมง (คิด 3 ชม. x 10%)</option>
+                <option value="6">คืนสาย 6 ชั่วโมง (คิดราคา 1 วัน + ค่าปรับ 50%)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">ความเสียหายอุปกรณ์ (Damage Inspection):</label>
+              <div class="space-y-2 text-xs">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" id="dmg-lens" onchange="recalculateSettlement()" class="rounded bg-slate-950 border-slate-700 text-blue-600 focus:ring-0">
+                  <span class="text-slate-300">รอยขีดข่วนชิ้นเลนส์ (Lens Element Scratch) - หัก 1,500 ฿</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" id="dmg-cap" onchange="recalculateSettlement()" class="rounded bg-slate-950 border-slate-700 text-blue-600 focus:ring-0">
+                  <span class="text-slate-300">ฝาปิดเลนส์หาย (Missing Lens Cap) - หัก 400 ฿</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Real-time Settlement Result Card -->
+          <div class="glass-card p-5 rounded-2xl flex flex-col justify-between border-slate-700/60">
+            <div>
+              <h3 class="text-xs font-bold text-cyan-400 uppercase tracking-wider mb-3">สรุปผลการหักเงิน & คืนเงินมัดจำ</h3>
+              <div class="space-y-2 text-xs">
+                <div class="flex justify-between text-slate-400">
+                  <span>เงินมัดจำตั้งต้น:</span>
+                  <span id="res-deposit" class="font-semibold text-white">5,000 ฿</span>
+                </div>
+                <div class="flex justify-between text-amber-400">
+                  <span>ค่าปรับคืนสาย (Late Fee):</span>
+                  <span id="res-late" class="font-semibold">0 ฿</span>
+                </div>
+                <div class="flex justify-between text-rose-400">
+                  <span>ค่าเสียหายอุปกรณ์:</span>
+                  <span id="res-damage" class="font-semibold">0 ฿</span>
+                </div>
+                <div class="border-t border-slate-700 pt-2 flex justify-between text-sm font-bold text-emerald-400">
+                  <span>เงินมัดจำโอนคืนลูกค้า:</span>
+                  <span id="res-refund" class="text-base">5,000 ฿</span>
+                </div>
+              </div>
+            </div>
+
+            <button onclick="confirmReturn()" class="w-full mt-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-600/20 text-xs">
+              <i data-lucide="check-circle" class="w-4 h-4 inline-block mr-1.5"></i> ยืนยัน Check-in & คืนเงินมัดจำ
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= ADD / EDIT CAMERA MODAL (CRUD MODAL) ================= -->
+  <div id="crud-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="glass-panel p-6 sm:p-8 rounded-3xl max-w-xl w-full space-y-5 border-slate-700 relative max-h-[90vh] overflow-y-auto">
+      <button onclick="closeCRUDModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+        <i data-lucide="x" class="w-6 h-6"></i>
+      </button>
+
+      <div class="border-b border-slate-800 pb-3">
+        <h3 id="crud-modal-title" class="text-lg font-bold text-white flex items-center gap-2">
+          <i data-lucide="camera" class="w-5 h-5 text-blue-400"></i> เพิ่มกล้อง / อุปกรณ์ใหม่
+        </h3>
+        <p class="text-xs text-slate-400">กรอกข้อมูลอุปกรณ์สำหรับลงในระบบเช่า</p>
+      </div>
+
+      <form id="crud-form" onsubmit="handleSaveCamera(event)" class="space-y-4 text-xs">
+        <input type="hidden" id="form-gear-id">
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">ชื่อรุ่นอุปกรณ์ (Model Name) *</label>
+            <input type="text" id="form-name" required placeholder="เช่น Sony A7S III" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-white">
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">ยี่ห้อ (Brand) *</label>
+            <select id="form-brand" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-white">
+              <option value="Sony">Sony</option>
+              <option value="Canon">Canon</option>
+              <option value="Fujifilm">Fujifilm</option>
+              <option value="Nikon">Nikon</option>
+              <option value="DJI">DJI</option>
+              <option value="Panasonic">Panasonic</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">หมวดหมู่ (Category) *</label>
+            <select id="form-category" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-white">
+              <option value="Camera">กล้องถ่ายภาพ (Camera)</option>
+              <option value="Lens">เลนส์ (Lens)</option>
+              <option value="Accessory">อุปกรณ์เสริม / กิมบอล (Accessory)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Lens Mount / ระบบเมาท์ *</label>
+            <select id="form-mount" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-white">
+              <option value="E-Mount">Sony E-Mount</option>
+              <option value="RF-Mount">Canon RF-Mount</option>
+              <option value="X-Mount">Fuji X-Mount</option>
+              <option value="Z-Mount">Nikon Z-Mount</option>
+              <option value="Universal">Universal / Accessory</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Serial Number (S/N) *</label>
+            <input type="text" id="form-serial" required placeholder="SN-SONY-12345" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-white font-mono">
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">ค่าเช่า / วัน (฿) *</label>
+            <input type="number" id="form-daily-rate" required min="100" placeholder="1000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-white">
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">เงินมัดจำ (฿) *</label>
+            <input type="number" id="form-deposit" required min="500" placeholder="5000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-white">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">สถานะเริ่มต้น (Status) *</label>
+          <select id="form-status" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-white">
+            <option value="AVAILABLE">พร้อมเช่า (AVAILABLE)</option>
+            <option value="RENTED">ถูกเช่าอยู่ (RENTED)</option>
+            <option value="MAINTENANCE">ซ่อมบำรุง (MAINTENANCE)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">ลิงก์รูปภาพ (Image URL) *</label>
+          <input type="url" id="form-image" required placeholder="https://images.unsplash.com/..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-white">
+          <div class="flex items-center gap-2 mt-2">
+            <span class="text-[11px] text-slate-400">รูปภาพสำเร็จรูป (คลิกเพื่อเลือก):</span>
+            <button type="button" onclick="setPresetImage('sony')" class="px-2 py-1 rounded bg-slate-800 text-[10px] text-slate-300 hover:text-white">Sony</button>
+            <button type="button" onclick="setPresetImage('canon')" class="px-2 py-1 rounded bg-slate-800 text-[10px] text-slate-300 hover:text-white">Canon</button>
+            <button type="button" onclick="setPresetImage('lens')" class="px-2 py-1 rounded bg-slate-800 text-[10px] text-slate-300 hover:text-white">Lens</button>
+            <button type="button" onclick="setPresetImage('fuji')" class="px-2 py-1 rounded bg-slate-800 text-[10px] text-slate-300 hover:text-white">Fuji</button>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+          <button type="button" onclick="closeCRUDModal()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold">
+            ยกเลิก
+          </button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-600/30">
+            บันทึกข้อมูลอุปกรณ์
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= BOOKING MODAL WITH REAL-TIME TIMER & PROMPTPAY QR ================= -->
+  <div id="booking-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="glass-panel p-6 rounded-3xl max-w-md w-full space-y-4 border-slate-700 relative">
+      <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+        <i data-lucide="x" class="w-6 h-6"></i>
+      </button>
+
+      <div class="text-center space-y-1">
+        <span class="px-3 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full text-xs font-bold inline-flex items-center gap-1.5">
+          <i data-lucide="clock" class="w-3.5 h-3.5 animate-spin"></i>
+          ระบบล็อกคิวอุปกรณ์ชั่วคราว: <span id="timer-text" class="font-mono text-white font-extrabold">15:00</span>
+        </span>
+        <h3 class="text-base font-bold text-white pt-2">ยืนยันการจอง & ชำระเงินมัดจำ</h3>
+        <p id="modal-gear-name" class="text-xs text-slate-400 font-medium">Sony A7 IV</p>
+      </div>
+
+      <!-- Days Selector -->
+      <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 text-xs flex items-center justify-between">
+        <span class="text-slate-300">จำนวนวันเช่า:</span>
+        <select id="modal-days-select" onchange="updateBookingModalPrice()" class="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-white font-bold">
+          <option value="1">1 วัน</option>
+          <option value="2" selected>2 วัน</option>
+          <option value="3">3 วัน</option>
+          <option value="5">5 วัน</option>
+          <option value="7">7 วัน (1 สัปดาห์)</option>
+        </select>
+      </div>
+
+      <!-- PromptPay QR -->
+      <div class="bg-white p-4 rounded-2xl text-center shadow-inner space-y-2">
+        <div class="text-[10px] font-bold text-blue-900 tracking-widest uppercase">Thai QR Payment / PromptPay</div>
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=00020101021229370016A000000677010111" alt="PromptPay QR" class="w-36 h-36 mx-auto border-4 border-slate-100 rounded-xl">
+        <span class="text-[11px] text-slate-600 block font-mono">พร้อมเพย์: 081-998-7766 (บจก. เลนส์โฟลว์)</span>
+      </div>
+
+      <!-- Price Breakdown -->
+      <div class="space-y-1 text-xs border-t border-slate-800 pt-2.5">
+        <div class="flex justify-between text-slate-400">
+          <span>ค่าเช่าอุปกรณ์ (<span id="modal-days-label">2</span> วัน):</span>
+          <span id="modal-rent-fee" class="font-semibold text-white">0 ฿</span>
+        </div>
+        <div class="flex justify-between text-slate-400">
+          <span>ค่ามัดจำประกันอุปกรณ์:</span>
+          <span id="modal-deposit-fee" class="font-semibold text-white">0 ฿</span>
+        </div>
+        <div class="flex justify-between text-sm font-bold text-cyan-400 pt-1 border-t border-slate-800/60">
+          <span>ยอดชำระสุทธิ:</span>
+          <span id="modal-total-fee" class="text-base">0 ฿</span>
+        </div>
+      </div>
+
+      <button onclick="handleConfirmPayment()" class="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/25 text-xs">
+        <i data-lucide="check" class="w-4 h-4 inline-block mr-1"></i> ยืนยันชำระเงิน & สร้างรายการจอง
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= JAVASCRIPT SYSTEM ENGINE ================= -->
+  <script>
+    // --- 1. INITIAL DEMO DATA ---
+    const DEFAULT_GEARS = [
+      { id: 'g1', brand: 'Sony', name: 'Sony A7 IV', category: 'Camera', mount: 'E-Mount', serial: 'SN-SONY-88902', dailyRate: 1000, deposit: 5000, image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=600&q=80', status: 'AVAILABLE', rentalCount: 28 },
+      { id: 'g2', brand: 'Canon', name: 'Canon EOS R5', category: 'Camera', mount: 'RF-Mount', serial: 'SN-CANON-10492', dailyRate: 1500, deposit: 8000, image: 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?auto=format&fit=crop&w=600&q=80', status: 'AVAILABLE', rentalCount: 22 },
+      { id: 'g3', brand: 'Sony', name: 'Sony FE 24-70mm f/2.8 GM II', category: 'Lens', mount: 'E-Mount', serial: 'SN-LENS-99120', dailyRate: 800, deposit: 3000, image: 'https://images.unsplash.com/photo-1617005082133-548c4dd27f35?auto=format&fit=crop&w=600&q=80', status: 'AVAILABLE', rentalCount: 35 },
+      { id: 'g4', brand: 'Fujifilm', name: 'Fujifilm X-T5', category: 'Camera', mount: 'X-Mount', serial: 'SN-FUJI-33211', dailyRate: 900, deposit: 4000, image: 'https://images.unsplash.com/photo-1512790182412-b19e6d62bc39?auto=format&fit=crop&w=600&q=80', status: 'RENTED', rentalCount: 19 },
+      { id: 'g5', brand: 'Sony', name: 'Sony FX3 Cinema Line', category: 'Camera', mount: 'E-Mount', serial: 'SN-SONY-77319', dailyRate: 1800, deposit: 9000, image: 'https://images.unsplash.com/photo-1589872510927-9759d57b2935?auto=format&fit=crop&w=600&q=80', status: 'AVAILABLE', rentalCount: 31 },
+      { id: 'g6', brand: 'DJI', name: 'DJI RS3 Pro Gimbal', category: 'Accessory', mount: 'Universal', serial: 'SN-DJI-55102', dailyRate: 600, deposit: 2500, image: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&w=600&q=80', status: 'MAINTENANCE', rentalCount: 14 }
+    ];
+
+    const DEFAULT_BOOKINGS = [
+      { id: 'LF-9021', customerName: 'สมชาย สายถ่ายภาพ', gearId: 'g4', gearName: 'Fujifilm X-T5', days: 2, totalFee: 5800, rentFee: 1800, deposit: 4000, status: 'RENTED', bookingDate: '2026-10-05', returnDate: '2026-10-07' },
+      { id: 'LF-9022', customerName: 'วิภาดา โปรดักชั่น', gearId: 'g5', gearName: 'Sony FX3 Cinema Line', days: 3, totalFee: 14400, rentFee: 5400, deposit: 9000, status: 'PENDING', bookingDate: '2026-10-06', returnDate: '2026-10-09' },
+      { id: 'LF-9018', customerName: 'ธนกร ช่างภาพอิสระ', gearId: 'g1', gearName: 'Sony A7 IV', days: 1, totalFee: 6000, rentFee: 1000, deposit: 5000, status: 'COMPLETED', bookingDate: '2026-10-02', returnDate: '2026-10-03' }
+    ];
+
+    const DEFAULT_ACTIVITIES = [
+      { text: 'วิภาดา โปรดักชั่น จองกล้อง Sony FX3 (รอการอนุมัติส่งมอบ)', time: '10 นาทีที่แล้ว', type: 'booking' },
+      { text: 'ส่งมอบ Fujifilm X-T5 ให้แก่ สมชาย สายถ่ายภาพ สำเร็จ', time: '1 ชั่วโมงที่แล้ว', type: 'handover' },
+      { text: 'ตรวจรับคืน Sony A7 IV คืนเงินมัดจำ 5,000 บาท ครบถ้วน', time: '2 วันที่แล้ว', type: 'return' }
+    ];
+
+    // --- 2. STATE STORAGE ---
+    let gearData = JSON.parse(localStorage.getItem('lensflow_gears')) || DEFAULT_GEARS;
+    let bookingData = JSON.parse(localStorage.getItem('lensflow_bookings')) || DEFAULT_BOOKINGS;
+    let activityLogs = JSON.parse(localStorage.getItem('lensflow_activities')) || DEFAULT_ACTIVITIES;
+    let currentRole = localStorage.getItem('lensflow_user_role') || 'admin'; // 'admin' or 'user'
+    let currentTab = currentRole === 'admin' ? 'dashboard' : 'catalog';
+
+    let currentSelectedGearForBooking = null;
+    let countdownInterval = null;
+    let revenueChartInstance = null;
+    let statusChartInstance = null;
+
+    function saveState() {
+      localStorage.setItem('lensflow_gears', JSON.stringify(gearData));
+      localStorage.setItem('lensflow_bookings', JSON.stringify(bookingData));
+      localStorage.setItem('lensflow_activities', JSON.stringify(activityLogs));
+      localStorage.setItem('lensflow_user_role', currentRole);
+    }
+
+    function logActivity(text, type = 'info') {
+      activityLogs.unshift({ text, time: 'เมื่อสักครู่', type });
+      if (activityLogs.length > 20) activityLogs.pop();
+      saveState();
+      renderActivityLogs();
+    }
+
+    // --- 3. ROLE MANAGEMENT & PERMISSION ENFORCEMENT ---
+    function switchUserRole(role) {
+      currentRole = role;
+      saveState();
+
+      // Update Top Button UI
+      const userBtn = document.getElementById('role-btn-user');
+      const adminBtn = document.getElementById('role-btn-admin');
+      const userBadge = document.getElementById('user-badge');
+      const userAvatar = document.getElementById('user-avatar');
+      const userName = document.getElementById('user-display-name');
+      const roleLabel = document.getElementById('user-role-label');
+      const deniedBanner = document.getElementById('access-denied-banner');
+
+      deniedBanner.classList.add('hidden');
+
+      if (role === 'admin') {
+        adminBtn.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md";
+        userBtn.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white";
+        
+        userAvatar.className = "w-7 h-7 rounded-lg bg-purple-600 flex items-center justify-center text-white font-bold text-xs shadow";
+        userAvatar.innerText = "A";
+        userName.innerText = "Admin System";
+        roleLabel.innerText = "Administrator (เจ้าของร้าน)";
+        roleLabel.className = "text-[10px] text-purple-400 font-semibold uppercase";
+
+        // Render Admin Navigation
+        renderNavigation('admin');
+        switchTab('dashboard');
+      } else {
+        userBtn.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-blue-600 text-white shadow-md";
+        adminBtn.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white";
+        
+        userAvatar.className = "w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-xs shadow";
+        userAvatar.innerText = "U";
+        userName.innerText = "สมชาย สายถ่ายภาพ";
+        roleLabel.innerText = "Customer (ลูกค้าทั่วไป)";
+        roleLabel.className = "text-[10px] text-cyan-400 font-semibold uppercase";
+
+        // Render User Navigation (DASHBOARD & CRUD ARE STRICTLY HIDDEN)
+        renderNavigation('user');
+        switchTab('catalog');
+      }
+      lucide.createIcons();
+    }
+
+    function renderNavigation(role) {
+      const nav = document.getElementById('nav-container');
+      const mobileNav = document.getElementById('mobile-nav');
+
+      if (role === 'admin') {
+        // Full Admin navigation: Dashboard, Equipment CRUD, Return Check-in, Catalog Preview
+        const navHtml = `
+          <button onclick="switchTab('dashboard')" id="nav-btn-dashboard" class="nav-btn px-3.5 py-2 rounded-xl text-xs font-bold transition-all bg-blue-600 text-white shadow">
+            <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 inline mr-1"></i> แดชบอร์ด (Dashboard)
+          </button>
+          <button onclick="switchTab('crud')" id="nav-btn-crud" class="nav-btn px-3.5 py-2 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white">
+            <i data-lucide="database" class="w-3.5 h-3.5 inline mr-1"></i> จัดการอุปกรณ์ (CRUD)
+          </button>
+          <button onclick="switchTab('staff')" id="nav-btn-staff" class="nav-btn px-3.5 py-2 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white">
+            <i data-lucide="clipboard-check" class="w-3.5 h-3.5 inline mr-1"></i> ตรวจรับคืน (Return)
+          </button>
+          <button onclick="switchTab('catalog')" id="nav-btn-catalog" class="nav-btn px-3.5 py-2 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white">
+            <i data-lucide="eye" class="w-3.5 h-3.5 inline mr-1"></i> หน้าร้าน (Catalog)
+          </button>
+        `;
+        nav.innerHTML = navHtml;
+        mobileNav.innerHTML = navHtml;
+      } else {
+        // Customer navigation: ONLY Catalog, My Bookings, e-KYC. (Dashboard & CRUD are HIDDEN)
+        const navHtml = `
+          <button onclick="switchTab('catalog')" id="nav-btn-catalog" class="nav-btn px-3.5 py-2 rounded-xl text-xs font-bold transition-all bg-blue-600 text-white shadow">
+            <i data-lucide="search" class="w-3.5 h-3.5 inline mr-1"></i> ค้นหากล้อง & จอง
+          </button>
+          <button onclick="switchTab('mybookings')" id="nav-btn-mybookings" class="nav-btn px-3.5 py-2 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white">
+            <i data-lucide="shopping-bag" class="w-3.5 h-3.5 inline mr-1"></i> รายการจองของฉัน
+          </button>
+          <button onclick="switchTab('kyc')" id="nav-btn-kyc" class="nav-btn px-3.5 py-2 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white">
+            <i data-lucide="shield-check" class="w-3.5 h-3.5 inline mr-1"></i> e-KYC ยืนยันตัวตน
+          </button>
+        `;
+        nav.innerHTML = navHtml;
+        mobileNav.innerHTML = navHtml;
+      }
+    }
+
+    function switchTab(tabId) {
+      const deniedBanner = document.getElementById('access-denied-banner');
+
+      // 🛡️ ROLE GUARD: Only Admin can access dashboard, crud, or staff tabs!
+      if (currentRole !== 'admin' && (tabId === 'dashboard' || tabId === 'crud' || tabId === 'staff')) {
+        deniedBanner.classList.remove('hidden');
+        switchTab('catalog'); // redirect to catalog
+        return;
+      }
+
+      deniedBanner.classList.add('hidden');
+      currentTab = tabId;
+
+      // Hide all sections
+      document.querySelectorAll('.tab-section').forEach(sec => sec.classList.add('hidden'));
+
+      // Deactivate all buttons
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('bg-blue-600', 'text-white', 'shadow');
+        btn.classList.add('text-slate-400');
+      });
+
+      // Show selected section
+      const activeSection = document.getElementById(`section-${tabId}`);
+      if (activeSection) activeSection.classList.remove('hidden');
+
+      // Highlight active buttons
+      const activeBtns = [
+        document.getElementById(`nav-btn-${tabId}`),
+        document.querySelector(`#mobile-nav #nav-btn-${tabId}`)
+      ];
+      activeBtns.forEach(btn => {
+        if (btn) {
+          btn.classList.add('bg-blue-600', 'text-white', 'shadow');
+          btn.classList.remove('text-slate-400');
+        }
+      });
+
+      // Specific section refresh triggers
+      if (tabId === 'dashboard') {
+        renderDashboard();
+      } else if (tabId === 'crud') {
+        renderCRUDTable();
+      } else if (tabId === 'catalog') {
+        renderCatalog();
+      } else if (tabId === 'mybookings') {
+        renderMyBookings();
+      } else if (tabId === 'staff') {
+        populateStaffReturnSelect();
+        recalculateSettlement();
+      }
+
+      lucide.createIcons();
+    }
+
+    function handleLogoClick() {
+      if (currentRole === 'admin') {
+        switchTab('dashboard');
+      } else {
+        switchTab('catalog');
+      }
+    }
+
+    // --- 4. ADMIN DASHBOARD LOGIC & METRICS ---
+    function renderDashboard() {
+      // Calculate dynamic KPIs
+      let totalRevenue = 0;
+      let activeRentals = 0;
+      let availableCount = 0;
+      let pendingCount = 0;
+      let totalEscrowDeposit = 0;
+      let maintenanceCount = 0;
+
+      // Equipment stats
+      gearData.forEach(g => {
+        if (g.status === 'AVAILABLE') availableCount++;
+        else if (g.status === 'RENTED') activeRentals++;
+        else if (g.status === 'MAINTENANCE') maintenanceCount++;
+      });
+
+      // Bookings stats
+      bookingData.forEach(b => {
+        if (b.status === 'COMPLETED' || b.status === 'RENTED') {
+          totalRevenue += (b.rentFee || 0);
+        }
+        if (b.status === 'RENTED') {
+          totalEscrowDeposit += (b.deposit || 0);
+        }
+        if (b.status === 'PENDING') {
+          pendingCount++;
+        }
+      });
+
+      // Add base historical revenue for nice display
+      const displayRevenue = totalRevenue + 185000;
+
+      document.getElementById('kpi-revenue').innerText = `฿${displayRevenue.toLocaleString()}`;
+      document.getElementById('kpi-rented').innerText = `${activeRentals} รายการ`;
+      document.getElementById('kpi-available').innerText = `${availableCount} รายการ`;
+      document.getElementById('kpi-pending').innerText = `${pendingCount} รายการ`;
+      document.getElementById('kpi-deposit').innerText = `฿${totalEscrowDeposit.toLocaleString()}`;
+      document.getElementById('kpi-maintenance').innerText = `${maintenanceCount} รายการ`;
+
+      // Percentage stats
+      const totalGears = gearData.length || 1;
+      document.getElementById('stat-avail-pct').innerText = `${Math.round((availableCount / totalGears) * 100)}%`;
+      document.getElementById('stat-rent-pct').innerText = `${Math.round((activeRentals / totalGears) * 100)}%`;
+      document.getElementById('stat-maint-pct').innerText = `${Math.round((maintenanceCount / totalGears) * 100)}%`;
+
+      // Update Live Booking Table
+      renderDashboardBookingTable();
+
+      // Update Popular Gears
+      renderDashboardPopularList();
+
+      // Update Activity Logs
+      renderActivityLogs();
+
+      // Render Charts
+      renderCharts(availableCount, activeRentals, maintenanceCount);
+    }
+
+    function renderDashboardBookingTable() {
+      const tbody = document.getElementById('dash-booking-table');
+      if (bookingData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-slate-500">ยังไม่มีรายการจองในระบบ</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = bookingData.map(b => {
+        let statusBadge = '';
+        let actionButtons = '';
+
+        if (b.status === 'PENDING') {
+          statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">รอส่งมอบ (PENDING)</span>`;
+          actionButtons = `
+            <div class="flex items-center justify-center gap-1.5">
+              <button onclick="approveHandover('${b.id}')" title="อนุมัติส่งมอบอุปกรณ์" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] transition">
+                อนุมัติส่งมอบ
+              </button>
+              <button onclick="cancelBooking('${b.id}')" title="ยกเลิกการจอง" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-rose-900/60 text-slate-400 hover:text-rose-300 text-[10px] transition">
+                ยกเลิก
+              </button>
+            </div>
+          `;
+        } else if (b.status === 'RENTED') {
+          statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-cyan-400 border border-blue-500/30">กำลังใช้งาน (RENTED)</span>`;
+          actionButtons = `
+            <div class="flex items-center justify-center gap-1.5">
+              <button onclick="quickReturn('${b.id}')" title="ตรวจรับคืนกล้อง" class="px-2.5 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-[10px] transition">
+                ตรวจรับคืน
+              </button>
+            </div>
+          `;
+        } else {
+          statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">คืนสำเร็จ (COMPLETED)</span>`;
+          actionButtons = `<span class="text-slate-500 text-[10px]">- เสร็จสิ้น -</span>`;
+        }
+
+        return `
+          <tr class="hover:bg-slate-900/50 transition">
+            <td class="py-3 px-4 font-mono font-bold text-white">${b.id}</td>
+            <td class="py-3 px-4 text-slate-300 font-medium">${b.customerName}</td>
+            <td class="py-3 px-4 text-white font-semibold">${b.gearName}</td>
+            <td class="py-3 px-4 text-slate-400">${b.days} วัน (${b.bookingDate} ~ ${b.returnDate})</td>
+            <td class="py-3 px-4 font-bold text-cyan-400">฿${b.totalFee.toLocaleString()}</td>
+            <td class="py-3 px-4">${statusBadge}</td>
+            <td class="py-3 px-4 text-center">${actionButtons}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function approveHandover(bookingId) {
+      const booking = bookingData.find(b => b.id === bookingId);
+      if (!booking) return;
+
+      booking.status = 'RENTED';
+      // Set gear status to RENTED
+      const gear = gearData.find(g => g.id === booking.gearId);
+      if (gear) {
+        gear.status = 'RENTED';
+        gear.rentalCount = (gear.rentalCount || 0) + 1;
+      }
+
+      logActivity(`Admin อนุมัติส่งมอบอุปกรณ์ ${booking.gearName} ให้แก่ ${booking.customerName} (Order: ${booking.id})`, 'handover');
+      saveState();
+      renderDashboard();
+      alert(`✅ อนุมัติส่งมอบอุปกรณ์ ${booking.gearName} สำเร็จ! สถานะเปลี่ยนเป็น RENTED`);
+    }
+
+    function cancelBooking(bookingId) {
+      if (!confirm(`ยืนยันการยกเลิกรายการจอง ${bookingId} หรือไม่?`)) return;
+      const booking = bookingData.find(b => b.id === bookingId);
+      if (!booking) return;
+
+      booking.status = 'CANCELLED';
+      const gear = gearData.find(g => g.id === booking.gearId);
+      if (gear && gear.status === 'RENTED') {
+        gear.status = 'AVAILABLE';
+      }
+
+      logActivity(`Admin ยกเลิกรายการจอง ${booking.id} (${booking.gearName})`, 'cancel');
+      saveState();
+      renderDashboard();
+    }
+
+    function quickReturn(bookingId) {
+      const booking = bookingData.find(b => b.id === bookingId);
+      if (!booking) return;
+
+      switchTab('staff');
+      const select = document.getElementById('sim-gear');
+      // Set to matching gear if available
+      for (let i = 0; i < select.options.length; i++) {
+        if (select.options[i].text.includes(booking.gearName)) {
+          select.selectedIndex = i;
+          break;
+        }
+      }
+      recalculateSettlement();
+    }
+
+    function renderDashboardPopularList() {
+      const list = document.getElementById('dash-popular-list');
+      const sorted = [...gearData].sort((a, b) => (b.rentalCount || 0) - (a.rentalCount || 0)).slice(0, 3);
+
+      list.innerHTML = sorted.map((g, idx) => `
+        <div class="flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+          <div class="flex items-center gap-3">
+            <span class="w-6 h-6 rounded-lg ${idx === 0 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-slate-800 text-slate-400'} flex items-center justify-center font-bold text-xs">
+              #${idx + 1}
+            </span>
+            <img src="${g.image}" alt="${g.name}" class="w-10 h-10 rounded-lg object-cover bg-slate-800">
+            <div>
+              <h4 class="font-bold text-white text-xs">${g.name}</h4>
+              <span class="text-[10px] text-slate-400">${g.brand} • ${g.mount} • ฿${g.dailyRate.toLocaleString()}/วัน</span>
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="text-xs font-bold text-cyan-400 block">${g.rentalCount || 0} ครั้ง</span>
+            <span class="text-[10px] text-emerald-400 font-semibold">★ 4.9 (ยอดนิยม)</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderActivityLogs() {
+      const container = document.getElementById('dash-activity-log');
+      if (!container) return;
+
+      container.innerHTML = activityLogs.map(act => `
+        <div class="p-2.5 rounded-xl bg-slate-900/40 border border-slate-800/80 flex items-start justify-between gap-2 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-blue-400 shrink-0 mt-1"></span>
+            <span class="text-slate-300 leading-snug">${act.text}</span>
+          </div>
+          <span class="text-[10px] text-slate-500 shrink-0 font-mono">${act.time}</span>
+        </div>
+      `).join('');
+    }
+
+    function renderCharts(avail, rent, maint) {
+      // 1. Monthly Revenue Chart
+      const revCtx = document.getElementById('revenueChart');
+      if (revCtx) {
+        if (revenueChartInstance) revenueChartInstance.destroy();
+        revenueChartInstance = new Chart(revCtx, {
+          type: 'bar',
+          data: {
+            labels: ['พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.'],
+            datasets: [
+              {
+                label: 'รายได้จากการเช่า (฿)',
+                data: [135000, 152000, 178000, 162000, 184500, 248500],
+                backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                borderColor: '#3b82f6',
+                borderWidth: 1,
+                borderRadius: 8
+              },
+              {
+                type: 'line',
+                label: 'เป้าหมายรายได้ (฿)',
+                data: [120000, 140000, 160000, 170000, 180000, 200000],
+                borderColor: '#06b6d4',
+                borderWidth: 2,
+                pointBackgroundColor: '#06b6d4',
+                tension: 0.3
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                labels: { color: '#94a3b8', font: { family: 'Plus Jakarta Sans', size: 11 } }
+              }
+            },
+            scales: {
+              x: {
+                grid: { color: 'rgba(255,255,255,0.05)' },
+                ticks: { color: '#94a3b8', font: { size: 11 } }
+              },
+              y: {
+                grid: { color: 'rgba(255,255,255,0.05)' },
+                ticks: { color: '#94a3b8', font: { size: 11 }, callback: v => '฿' + (v / 1000) + 'k' }
+              }
+            }
+          }
+        });
+      }
+
+      // 2. Inventory Status Chart
+      const statusCtx = document.getElementById('statusChart');
+      if (statusCtx) {
+        if (statusChartInstance) statusChartInstance.destroy();
+        statusChartInstance = new Chart(statusCtx, {
+          type: 'doughnut',
+          data: {
+            labels: ['พร้อมเช่า', 'ถูกเช่าอยู่', 'ส่งซ่อม'],
+            datasets: [{
+              data: [avail, rent, maint],
+              backgroundColor: ['#10b981', '#06b6d4', '#f43f5e'],
+              borderWidth: 2,
+              borderColor: '#0f172a'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { color: '#94a3b8', font: { family: 'Plus Jakarta Sans', size: 11 } }
+              }
+            },
+            cutout: '70%'
+          }
+        });
+      }
+    }
+
+    // --- 5. CRUD EQUIPMENT MANAGEMENT LOGIC ---
+    function renderCRUDTable() {
+      const tbody = document.getElementById('crud-table-body');
+      const search = (document.getElementById('crud-search')?.value || '').toLowerCase();
+      const brandFilter = document.getElementById('crud-filter-brand')?.value || 'ALL';
+      const statusFilter = document.getElementById('crud-filter-status')?.value || 'ALL';
+      const catFilter = document.getElementById('crud-filter-category')?.value || 'ALL';
+
+      const filtered = gearData.filter(g => {
+        const matchSearch = g.name.toLowerCase().includes(search) || g.serial.toLowerCase().includes(search);
+        const matchBrand = (brandFilter === 'ALL' || g.brand === brandFilter);
+        const matchStatus = (statusFilter === 'ALL' || g.status === statusFilter);
+        const matchCat = (catFilter === 'ALL' || g.category === catFilter);
+        return matchSearch && matchBrand && matchStatus && matchCat;
+      });
+
+      document.getElementById('crud-count-label').innerText = `แสดง ${filtered.length} จากทั้งหมด ${gearData.length} รายการ`;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-slate-500">ไม่พบรายการกล้องที่ตรงตามเงื่อนไข</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(item => {
+        let statusBadge = '';
+        if (item.status === 'AVAILABLE') {
+          statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">พร้อมเช่า (AVAILABLE)</span>`;
+        } else if (item.status === 'RENTED') {
+          statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-cyan-400 border border-blue-500/30">ถูกเช่าอยู่ (RENTED)</span>`;
+        } else {
+          statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">ซ่อมบำรุง (MAINTENANCE)</span>`;
+        }
+
+        return `
+          <tr class="hover:bg-slate-900/60 transition">
+            <td class="py-3 px-4">
+              <img src="${item.image}" alt="${item.name}" class="w-12 h-12 rounded-xl object-cover border border-slate-800 bg-slate-900">
+            </td>
+            <td class="py-3 px-4">
+              <div class="font-bold text-white text-xs">${item.name}</div>
+              <div class="text-[10px] text-slate-400">${item.brand}</div>
+            </td>
+            <td class="py-3 px-4 font-mono font-semibold text-slate-300 text-[11px]">${item.serial}</td>
+            <td class="py-3 px-4">
+              <span class="text-xs text-slate-300 block">${item.category}</span>
+              <span class="text-[10px] text-cyan-400">${item.mount}</span>
+            </td>
+            <td class="py-3 px-4 font-bold text-white">฿${item.dailyRate.toLocaleString()}</td>
+            <td class="py-3 px-4 text-blue-400 font-semibold">฿${item.deposit.toLocaleString()}</td>
+            <td class="py-3 px-4">${statusBadge}</td>
+            <td class="py-3 px-4 text-center">
+              <div class="flex items-center justify-center gap-1.5">
+                <button onclick="openEditCameraModal('${item.id}')" title="แก้ไขข้อมูล" class="p-1.5 rounded-lg bg-slate-800 hover:bg-blue-600/40 text-blue-400 hover:text-white transition">
+                  <i data-lucide="edit-3" class="w-4 h-4"></i>
+                </button>
+                <button onclick="toggleCameraStatus('${item.id}')" title="เปลี่ยนสถานะ ด่วน" class="p-1.5 rounded-lg bg-slate-800 hover:bg-amber-600/40 text-amber-400 hover:text-white transition">
+                  <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                </button>
+                <button onclick="deleteCamera('${item.id}')" title="ลบรายการ" class="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-600/40 text-rose-400 hover:text-white transition">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    // CREATE CAMERA MODAL
+    function openAddCameraModal() {
+      document.getElementById('crud-modal-title').innerHTML = `<i data-lucide="plus-circle" class="w-5 h-5 text-blue-400"></i> เพิ่มกล้อง / อุปกรณ์ใหม่`;
+      document.getElementById('form-gear-id').value = '';
+      document.getElementById('form-name').value = '';
+      document.getElementById('form-brand').value = 'Sony';
+      document.getElementById('form-category').value = 'Camera';
+      document.getElementById('form-mount').value = 'E-Mount';
+      document.getElementById('form-serial').value = 'SN-' + Math.floor(10000 + Math.random() * 90000);
+      document.getElementById('form-daily-rate').value = '1200';
+      document.getElementById('form-deposit').value = '6000';
+      document.getElementById('form-status').value = 'AVAILABLE';
+      document.getElementById('form-image').value = 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=600&q=80';
+
+      document.getElementById('crud-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    // EDIT CAMERA MODAL
+    function openEditCameraModal(gearId) {
+      const gear = gearData.find(g => g.id === gearId);
+      if (!gear) return;
+
+      document.getElementById('crud-modal-title').innerHTML = `<i data-lucide="edit-3" class="w-5 h-5 text-cyan-400"></i> แก้ไขข้อมูลอุปกรณ์: ${gear.name}`;
+      document.getElementById('form-gear-id').value = gear.id;
+      document.getElementById('form-name').value = gear.name;
+      document.getElementById('form-brand').value = gear.brand;
+      document.getElementById('form-category').value = gear.category;
+      document.getElementById('form-mount').value = gear.mount;
+      document.getElementById('form-serial').value = gear.serial;
+      document.getElementById('form-daily-rate').value = gear.dailyRate;
+      document.getElementById('form-deposit').value = gear.deposit;
+      document.getElementById('form-status').value = gear.status;
+      document.getElementById('form-image').value = gear.image;
+
+      document.getElementById('crud-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeCRUDModal() {
+      document.getElementById('crud-modal').classList.add('hidden');
+    }
+
+    // SAVE CAMERA (CREATE OR UPDATE)
+    function handleSaveCamera(e) {
+      e.preventDefault();
+      const id = document.getElementById('form-gear-id').value;
+      const name = document.getElementById('form-name').value.trim();
+      const brand = document.getElementById('form-brand').value;
+      const category = document.getElementById('form-category').value;
+      const mount = document.getElementById('form-mount').value;
+      const serial = document.getElementById('form-serial').value.trim();
+      const dailyRate = Number(document.getElementById('form-daily-rate').value);
+      const deposit = Number(document.getElementById('form-deposit').value);
+      const status = document.getElementById('form-status').value;
+      const image = document.getElementById('form-image').value.trim();
+
+      if (id) {
+        // UPDATE
+        const gear = gearData.find(g => g.id === id);
+        if (gear) {
+          gear.name = name;
+          gear.brand = brand;
+          gear.category = category;
+          gear.mount = mount;
+          gear.serial = serial;
+          gear.dailyRate = dailyRate;
+          gear.deposit = deposit;
+          gear.status = status;
+          gear.image = image;
+          logActivity(`Admin แก้ไขข้อมูลกล้อง: ${name} (S/N: ${serial})`, 'update');
+        }
+      } else {
+        // CREATE
+        const newId = 'g_' + Date.now();
+        const newGear = {
+          id: newId,
+          name,
+          brand,
+          category,
+          mount,
+          serial,
+          dailyRate,
+          deposit,
+          status,
+          image,
+          rentalCount: 0
+        };
+        gearData.unshift(newGear);
+        logActivity(`Admin เพิ่มกล้องใหม่เข้าสู่ระบบ: ${name} (฿${dailyRate}/วัน)`, 'create');
+      }
+
+      saveState();
+      closeCRUDModal();
+      renderCRUDTable();
+      renderDashboard();
+      alert(`🎉 บันทึกข้อมูลกล้อง "${name}" สำเร็จเรียบร้อย!`);
+    }
+
+    // TOGGLE STATUS
+    function toggleCameraStatus(gearId) {
+      const gear = gearData.find(g => g.id === gearId);
+      if (!gear) return;
+
+      if (gear.status === 'AVAILABLE') {
+        gear.status = 'MAINTENANCE';
+      } else if (gear.status === 'MAINTENANCE') {
+        gear.status = 'AVAILABLE';
+      } else if (gear.status === 'RENTED') {
+        alert('กล้องกำลังถูกเช่าอยู่ ไม่สามารถสลับสถานะโดยตรงได้ กรุณาทำรายการตรวจรับคืนในหน้า Staff Check-in');
+        return;
+      }
+
+      logActivity(`Admin สลับสถานะกล้อง ${gear.name} เป็น ${gear.status}`, 'status');
+      saveState();
+      renderCRUDTable();
+      renderDashboard();
+    }
+
+    // DELETE CAMERA (DELETE)
+    function deleteCamera(gearId) {
+      const gear = gearData.find(g => g.id === gearId);
+      if (!gear) return;
+
+      if (gear.status === 'RENTED') {
+        alert('⚠️ ไม่สามารถลบอุปกรณ์นี้ได้ เนื่องจากกำลังถูกเช่าอยู่ (RENTED)');
+        return;
+      }
+
+      if (!confirm(`คุณต้องการลบกล้อง "${gear.name}" (S/N: ${gear.serial}) ออกจากระบบอย่างถาวรใช่หรือไม่?`)) {
+        return;
+      }
+
+      gearData = gearData.filter(g => g.id !== gearId);
+      logActivity(`Admin ลบกล้องออกจากระบบ: ${gear.name}`, 'delete');
+      saveState();
+      renderCRUDTable();
+      renderDashboard();
+      alert(`🗑️ ลบกล้อง "${gear.name}" เรียบร้อยแล้ว`);
+    }
+
+    // IMAGE PRESET HELPER
+    function setPresetImage(type) {
+      const input = document.getElementById('form-image');
+      if (type === 'sony') input.value = 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=600&q=80';
+      if (type === 'canon') input.value = 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?auto=format&fit=crop&w=600&q=80';
+      if (type === 'lens') input.value = 'https://images.unsplash.com/photo-1617005082133-548c4dd27f35?auto=format&fit=crop&w=600&q=80';
+      if (type === 'fuji') input.value = 'https://images.unsplash.com/photo-1512790182412-b19e6d62bc39?auto=format&fit=crop&w=600&q=80';
+    }
+
+    // --- 6. CATALOG & SEARCH LOGIC ---
+    function renderCatalog() {
+      const grid = document.getElementById('gear-grid');
+      const brand = document.getElementById('filter-brand')?.value || 'ALL';
+      const mount = document.getElementById('filter-mount')?.value || 'ALL';
+      const category = document.getElementById('filter-category')?.value || 'ALL';
+
+      const filtered = gearData.filter(g => {
+        return (brand === 'ALL' || g.brand === brand) &&
+               (mount === 'ALL' || g.mount === mount) &&
+               (category === 'ALL' || g.category === category);
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `<div class="col-span-3 text-center py-12 text-slate-500">ไม่พบอุปกรณ์ที่ตรงตามเงื่อนไขการค้นหา</div>`;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(item => `
+        <div class="glass-card rounded-2xl overflow-hidden transition-all flex flex-col justify-between">
+          <div>
+            <div class="relative h-48 overflow-hidden bg-slate-900">
+              <img src="${item.image}" alt="${item.name}" class="w-full h-full object-cover hover:scale-105 transition-all duration-300">
+              <span class="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-950/80 backdrop-blur-md text-cyan-400 border border-slate-700">
+                ${item.mount}
+              </span>
+              <span class="absolute top-3 right-3 px-2.5 py-1 rounded-full text-[10px] font-bold ${item.status === 'AVAILABLE' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : (item.status === 'RENTED' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30')}">
+                ${item.status === 'AVAILABLE' ? 'พร้อมเช่า (Available)' : (item.status === 'RENTED' ? 'ถูกเช่าอยู่ (Rented)' : 'ซ่อมบำรุง (Maintenance)')}
+              </span>
+            </div>
+            <div class="p-5 space-y-2">
+              <div class="text-[10px] text-slate-400 font-mono font-semibold">S/N: ${item.serial}</div>
+              <h3 class="text-base font-bold text-white">${item.name}</h3>
+              <div class="flex items-center justify-between text-xs pt-1">
+                <span class="text-slate-400">ค่าเช่ารายวัน: <strong class="text-white">${item.dailyRate.toLocaleString()} ฿/วัน</strong></span>
+                <span class="text-slate-400">เงินมัดจำ: <strong class="text-blue-400">${item.deposit.toLocaleString()} ฿</strong></span>
+              </div>
+            </div>
+          </div>
+          <div class="p-5 pt-0">
+            <button onclick="openBookingModal('${item.id}')" ${item.status !== 'AVAILABLE' ? 'disabled' : ''} 
+              class="w-full py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${item.status === 'AVAILABLE' ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/25' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}">
+              <i data-lucide="calendar-plus" class="w-4 h-4"></i> ${item.status === 'AVAILABLE' ? 'จองอุปกรณ์ออนไลน์' : 'ไม่พร้อมใช้งาน'}
+            </button>
+          </div>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    function filterGear() {
+      renderCatalog();
+    }
+
+    function resetCatalogFilters() {
+      document.getElementById('filter-brand').value = 'ALL';
+      document.getElementById('filter-mount').value = 'ALL';
+      document.getElementById('filter-category').value = 'ALL';
+      renderCatalog();
+    }
+
+    // --- 7. BOOKING & CHECKOUT SYSTEM ---
+    function openBookingModal(gearId) {
+      const gear = gearData.find(g => g.id === gearId);
+      if (!gear) return;
+
+      currentSelectedGearForBooking = gear;
+
+      document.getElementById('modal-gear-name').innerText = `${gear.name} (S/N: ${gear.serial})`;
+      document.getElementById('modal-days-select').value = "2";
+      updateBookingModalPrice();
+
+      document.getElementById('booking-modal').classList.remove('hidden');
+      startTimer(15 * 60);
+      lucide.createIcons();
+    }
+
+    function updateBookingModalPrice() {
+      if (!currentSelectedGearForBooking) return;
+      const days = Number(document.getElementById('modal-days-select').value);
+      const rentFee = currentSelectedGearForBooking.dailyRate * days;
+      const deposit = currentSelectedGearForBooking.deposit;
+      const total = rentFee + deposit;
+
+      document.getElementById('modal-days-label').innerText = days;
+      document.getElementById('modal-rent-fee').innerText = `${rentFee.toLocaleString()} ฿`;
+      document.getElementById('modal-deposit-fee').innerText = `${deposit.toLocaleString()} ฿`;
+      document.getElementById('modal-total-fee').innerText = `${total.toLocaleString()} ฿`;
+    }
+
+    function closeModal() {
+      document.getElementById('booking-modal').classList.add('hidden');
+      if (countdownInterval) clearInterval(countdownInterval);
+    }
+
+    function startTimer(durationSeconds) {
+      let timer = durationSeconds;
+      if (countdownInterval) clearInterval(countdownInterval);
+      
+      const timerDisplay = document.getElementById('timer-text');
+      countdownInterval = setInterval(() => {
+        const minutes = Math.floor(timer / 60);
+        const seconds = timer % 60;
+        timerDisplay.textContent = `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+
+        if (--timer < 0) {
+          clearInterval(countdownInterval);
+          alert('หมดเวลาล็อกคิว 15 นาที ระบบปลดล็อกอุปกรณ์กลับสู่สถานะว่าง');
+          closeModal();
+        }
+      }, 1000);
+    }
+
+    function handleConfirmPayment() {
+      if (!currentSelectedGearForBooking) return;
+
+      const days = Number(document.getElementById('modal-days-select').value);
+      const rentFee = currentSelectedGearForBooking.dailyRate * days;
+      const deposit = currentSelectedGearForBooking.deposit;
+      const totalFee = rentFee + deposit;
+
+      const orderId = 'LF-' + Math.floor(1000 + Math.random() * 9000);
+      const customerName = currentRole === 'admin' ? 'Admin Booking' : 'สมชาย สายถ่ายภาพ';
+
+      const newBooking = {
+        id: orderId,
+        customerName: customerName,
+        gearId: currentSelectedGearForBooking.id,
+        gearName: currentSelectedGearForBooking.name,
+        days: days,
+        totalFee: totalFee,
+        rentFee: rentFee,
+        deposit: deposit,
+        status: 'PENDING',
+        bookingDate: new Date().toISOString().split('T')[0],
+        returnDate: new Date(Date.now() + days * 86400000).toISOString().split('T')[0]
+      };
+
+      bookingData.unshift(newBooking);
+
+      // Lock gear to RENTED / PENDING
+      currentSelectedGearForBooking.status = 'RENTED';
+      currentSelectedGearForBooking.rentalCount = (currentSelectedGearForBooking.rentalCount || 0) + 1;
+
+      logActivity(`${customerName} จองอุปกรณ์ ${currentSelectedGearForBooking.name} (${days} วัน - ยอดรวม ฿${totalFee.toLocaleString()})`, 'booking');
+
+      saveState();
+      closeModal();
+      
+      alert(`🎉 จองอุปกรณ์สำเร็จ! รหัสการจองของคุณคือ: ${orderId}\nระบบบันทึกรายการเรียบร้อยและส่งต่อให้แอดมินเตรียมส่งมอบ`);
+
+      if (currentRole === 'user') {
+        switchTab('mybookings');
+      } else {
+        renderCatalog();
+        renderDashboard();
+      }
+    }
+
+    // --- 8. MY BOOKINGS LOGIC (CUSTOMER VIEW) ---
+    function renderMyBookings() {
+      const container = document.getElementById('my-bookings-container');
+      const myBookings = bookingData.filter(b => b.customerName.includes('สมชาย') || b.customerName.includes('Admin'));
+
+      if (myBookings.length === 0) {
+        container.innerHTML = `<div class="text-center py-12 text-slate-500">คุณยังไม่มีประวัติการจองอุปกรณ์ในขณะนี้</div>`;
+        return;
+      }
+
+      container.innerHTML = myBookings.map(b => `
+        <div class="glass-card p-5 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <span class="font-mono font-bold text-white text-sm">${b.id}</span>
+              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${b.status === 'COMPLETED' ? 'bg-emerald-500/20 text-emerald-400' : (b.status === 'RENTED' ? 'bg-blue-500/20 text-cyan-400' : 'bg-amber-500/20 text-amber-400')}">
+                ${b.status}
+              </span>
+            </div>
+            <h4 class="text-base font-bold text-white">${b.gearName}</h4>
+            <div class="text-xs text-slate-400">
+              ระยะเวลาเช่า: <span class="text-slate-200 font-semibold">${b.days} วัน</span> (${b.bookingDate} ถึง ${b.returnDate})
+            </div>
+          </div>
+          <div class="text-right space-y-1">
+            <span class="text-xs text-slate-400 block">ยอดชำระแล้วสุทธิ</span>
+            <div class="text-lg font-extrabold text-cyan-400">฿${b.totalFee.toLocaleString()}</div>
+            <span class="text-[10px] text-slate-500 block">(ค่าเช่า ฿${b.rentFee.toLocaleString()} + มัดจำ ฿${b.deposit.toLocaleString()})</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // --- 9. e-KYC VERIFICATION SIMULATOR ---
+    function handleKYCSubmit(e) {
+      e.preventDefault();
+      const alertBox = document.getElementById('kyc-alert');
+      alertBox.className = "p-4 rounded-xl text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+      alertBox.innerHTML = "✅ ส่งข้อมูล e-KYC เรียบร้อย! ระบบทำการอนุมัติผลอัตโนมัติ สิทธิ์การเช่าเปิดใช้งานแล้ว";
+      alertBox.classList.remove('hidden');
+      logActivity(`ผู้เช่า สมชาย สายถ่ายภาพ ผ่านการยืนยันตัวตน e-KYC แล้ว`, 'kyc');
+    }
+
+    // --- 10. STAFF CHECK-IN & RETURN CALCULATOR ---
+    function populateStaffReturnSelect() {
+      const select = document.getElementById('sim-gear');
+      select.innerHTML = gearData.map(g => `
+        <option value="${g.dailyRate},${g.deposit},${g.id}">${g.name} (ค่าเช่า ${g.dailyRate.toLocaleString()} บ./วัน | มัดจำ ${g.deposit.toLocaleString()} บ.)</option>
+      `).join('');
+    }
+
+    function recalculateSettlement() {
+      const val = document.getElementById('sim-gear').value;
+      if (!val) return;
+      const [rate, deposit] = val.split(',').slice(0, 2).map(Number);
+      const lateHours = parseFloat(document.getElementById('sim-hours').value);
+      const dmgLens = document.getElementById('dmg-lens').checked ? 1500 : 0;
+      const dmgCap = document.getElementById('dmg-cap').checked ? 400 : 0;
+
+      let lateFee = 0;
+      if (lateHours > 1 && lateHours <= 4) {
+        lateFee = Math.ceil(lateHours) * (rate * 0.10);
+      } else if (lateHours > 4) {
+        lateFee = rate + (rate * 0.50);
+      }
+
+      const totalDamage = dmgLens + dmgCap;
+      const totalDeduction = lateFee + totalDamage;
+      const refund = Math.max(0, deposit - totalDeduction);
+
+      document.getElementById('res-deposit').innerText = `${deposit.toLocaleString()} ฿`;
+      document.getElementById('res-late').innerText = `${lateFee.toLocaleString()} ฿`;
+      document.getElementById('res-damage').innerText = `${totalDamage.toLocaleString()} ฿`;
+      document.getElementById('res-refund').innerText = `${refund.toLocaleString()} ฿`;
+    }
+
+    function confirmReturn() {
+      const val = document.getElementById('sim-gear').value;
+      if (!val) return;
+      const [rate, deposit, gearId] = val.split(',');
+      const refundText = document.getElementById('res-refund').innerText;
+
+      // Update gear status back to AVAILABLE
+      const gear = gearData.find(g => g.id === gearId);
+      if (gear) {
+        gear.status = 'AVAILABLE';
+      }
+
+      // Update any matching booking to COMPLETED
+      const booking = bookingData.find(b => b.gearId === gearId && b.status === 'RENTED');
+      if (booking) {
+        booking.status = 'COMPLETED';
+      }
+
+      logActivity(`Staff ตรวจรับคืนอุปกรณ์สำเร็จ คืนเงินมัดจำ ${refundText}`, 'return');
+      saveState();
+      alert(`✅ ตรวจรับคืนอุปกรณ์สำเร็จ! ระบบปลดล็อกกล้องกลับเป็นสถานะพร้อมเช่า (AVAILABLE) และคืนเงินมัดจำ ${refundText} เรียบร้อยแล้ว`);
+      switchTab('dashboard');
+    }
+
+    // --- 11. DEMO DATA RESET ---
+    function resetDemoData() {
+      if (!confirm('ต้องการคืนค่าข้อมูลตัวอย่าง (Reset Demo Data) ทั้งหมดหรือไม่?')) return;
+      localStorage.removeItem('lensflow_gears');
+      localStorage.removeItem('lensflow_bookings');
+      localStorage.removeItem('lensflow_activities');
+      gearData = [...DEFAULT_GEARS];
+      bookingData = [...DEFAULT_BOOKINGS];
+      activityLogs = [...DEFAULT_ACTIVITIES];
+      saveState();
+      switchTab(currentTab);
+      alert('🔄 คืนค่าข้อมูลตัวอย่างตั้งต้นเรียบร้อยแล้ว');
+    }
+
+    // --- INITIALIZE APPLICATION ---
+    window.addEventListener('DOMContentLoaded', () => {
+      // Set date picker defaults
+      const today = new Date().toISOString().split('T')[0];
+      const startInput = document.getElementById('rental-start-date');
+      const endInput = document.getElementById('rental-end-date');
+      if (startInput) startInput.value = today;
+      if (endInput) {
+        const nextTwoDays = new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0];
+        endInput.value = nextTwoDays;
+      }
+
+      // Set initial role & render
+      switchUserRole(currentRole);
+    });
+  </script>
+</body>
+</html>
