@@ -38,6 +38,9 @@
   <!-- Chart.js CDN for Admin Analytics -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+  <!-- Google Identity Services (Sign in with Google) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
   <style>
     body { font-family: 'Plus Jakarta Sans', 'Sarabun', sans-serif; }
     .glass-panel {
@@ -89,8 +92,15 @@
       <!-- User Role Selector & Profile Widget -->
       <div class="flex items-center gap-3">
         
+        <!-- Google Sign-In Button -->
+        <div id="g_id_onload"
+             data-client_id="482046455757-3edjun9vdcvtjrla85dvs9kb3e5fkrhp.apps.googleusercontent.com"
+             data-callback="handleGoogleCredentialResponse">
+        </div>
+        <div class="g_id_signin" data-type="standard" data-size="medium" data-theme="filled_black" data-text="signin_with" data-shape="pill"></div>
+
         <!-- Quick Role Switcher Button -->
-        <div class="flex items-center bg-slate-900/90 p-1 rounded-2xl border border-slate-800">
+        <div class="hidden sm:flex items-center bg-slate-900/90 p-1 rounded-2xl border border-slate-800">
           <button id="role-btn-user" onclick="switchUserRole('user')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white">
             <i data-lucide="user" class="w-3.5 h-3.5"></i> User
           </button>
@@ -867,6 +877,32 @@
       if (activityLogs.length > 20) activityLogs.pop();
       saveState();
       renderActivityLogs();
+    }
+
+    // --- GOOGLE SIGN-IN CREDENTIAL HANDLER ---
+    function handleGoogleCredentialResponse(response) {
+      try {
+        const base64Url = response.credential.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const payload = JSON.parse(decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')));
+        
+        const adminEmails = ["674295025@parichat.skru.ac.th", "admin@lensflow.com"];
+        const isAdmin = adminEmails.some(e => e.toLowerCase() === payload.email.toLowerCase()) || payload.email.toLowerCase().includes('admin');
+        
+        // Update User UI
+        const avatar = document.getElementById('user-avatar');
+        if (avatar) avatar.innerHTML = `<img src="${payload.picture}" class="w-full h-full rounded-lg object-cover">`;
+        const nameEl = document.getElementById('user-display-name');
+        if (nameEl) nameEl.innerText = payload.name;
+        const roleEl = document.getElementById('user-role-label');
+        if (roleEl) roleEl.innerText = isAdmin ? 'Administrator (Google)' : 'Customer (Google)';
+        
+        switchUserRole(isAdmin ? 'admin' : 'user');
+        logActivity(`เข้าสู่ระบบ Google: ${payload.name} (${isAdmin ? 'ADMIN' : 'USER'})`, 'auth');
+        alert(`🎉 ยินดีต้อนรับคุณ ${payload.name}!\nเข้าสู่ระบบผ่าน Google สำเร็จในฐานะ [${isAdmin ? 'ผู้ดูแลระบบ (Admin)' : 'ลูกค้าทั่วไป (Customer)'}]`);
+      } catch (err) {
+        console.error('Google Auth error:', err);
+      }
     }
 
     // --- 3. ROLE MANAGEMENT & PERMISSION ENFORCEMENT ---

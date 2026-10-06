@@ -40,6 +40,11 @@ export default function App() {
     return role === 'admin' ? 'dashboard' : 'catalog';
   });
 
+  const [currentUser, setCurrentUser] = useState(() => {
+    const saved = localStorage.getItem('lensflow_google_user');
+    return saved ? JSON.parse(saved) : null;
+  });
+
   const [bookingModalGear, setBookingModalGear] = useState(null);
   const [crudModalOpen, setCrudModalOpen] = useState(false);
   const [editingGear, setEditingGear] = useState(null);
@@ -79,6 +84,22 @@ export default function App() {
     } else {
       setCurrentTab('catalog');
     }
+  };
+
+  // Google OAuth Handlers
+  const handleGoogleLogin = (userObj) => {
+    setCurrentUser(userObj);
+    localStorage.setItem('lensflow_google_user', JSON.stringify(userObj));
+    handleSwitchRole(userObj.role);
+    logActivity(`เข้าสู่ระบบผ่าน Google สำเร็จ: ${userObj.name} (${userObj.role.toUpperCase()})`, 'auth');
+    alert(`🎉 ยินดีต้อนรับคุณ ${userObj.name}!\nเข้าสู่ระบบสำเร็จในฐานะ [${userObj.role === 'admin' ? 'ผู้ดูแลระบบ (Admin)' : 'ลูกค้าทั่วไป (Customer)'}]`);
+  };
+
+  const handleGoogleLogout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem('lensflow_google_user');
+    handleSwitchRole('user');
+    logActivity('ออกจากระบบ Google', 'auth');
   };
 
   // Tab switching with STRICT ROLE PROTECTION
@@ -151,7 +172,7 @@ export default function App() {
   // Booking Actions
   const handleConfirmBooking = (gear, days, rentFee, deposit, totalFee) => {
     const orderId = 'LF-' + Math.floor(1000 + Math.random() * 9000);
-    const customerName = currentRole === 'admin' ? 'Admin Booking' : 'สมชาย สายถ่ายภาพ';
+    const customerName = currentUser ? currentUser.name : (currentRole === 'admin' ? 'Admin Booking' : 'สมชาย สายถ่ายภาพ');
 
     const newBooking = {
       id: orderId,
@@ -270,6 +291,9 @@ export default function App() {
         onSwitchRole={handleSwitchRole}
         currentTab={currentTab}
         onSelectTab={handleSelectTab}
+        currentUser={currentUser}
+        onGoogleLogin={handleGoogleLogin}
+        onGoogleLogout={handleGoogleLogout}
       />
 
       {/* Access Denied Warning Banner */}

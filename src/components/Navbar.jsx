@@ -10,12 +10,16 @@ import {
   User,
   ShieldAlert
 } from 'lucide-react';
+import GoogleAuthButton from './GoogleAuthButton.jsx';
 
 export default function Navbar({
   currentRole,
   onSwitchRole,
   currentTab,
-  onSelectTab
+  onSelectTab,
+  currentUser,
+  onGoogleLogin,
+  onGoogleLogout
 }) {
   return (
     <header className="sticky top-0 z-40 glass-panel border-b border-slate-800/80">
@@ -125,11 +129,18 @@ export default function Navbar({
           )}
         </nav>
 
-        {/* Role Switcher & Profile Widget */}
+        {/* Right Section: Google Sign-In & Role Widget */}
         <div className="flex items-center gap-3">
           
-          {/* Quick Role Switcher */}
-          <div className="flex items-center bg-slate-900/90 p-1 rounded-2xl border border-slate-800">
+          {/* Google Sign-In Component */}
+          <GoogleAuthButton
+            currentUser={currentUser}
+            onLogin={onGoogleLogin}
+            onLogout={onGoogleLogout}
+          />
+
+          {/* Quick Role Switcher (Simulator) */}
+          <div className="hidden sm:flex items-center bg-slate-900/90 p-1 rounded-2xl border border-slate-800">
             <button
               onClick={() => onSwitchRole('user')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
@@ -150,29 +161,6 @@ export default function Navbar({
             >
               <ShieldAlert className="w-3.5 h-3.5" /> Admin
             </button>
-          </div>
-
-          {/* Active User Badge */}
-          <div className="hidden lg:flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs">
-            <div
-              className={`w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow ${
-                currentRole === 'admin' ? 'bg-purple-600' : 'bg-blue-600'
-              }`}
-            >
-              {currentRole === 'admin' ? 'A' : 'U'}
-            </div>
-            <div className="text-left">
-              <div className="font-bold text-slate-200 leading-tight">
-                {currentRole === 'admin' ? 'Admin System' : 'สมชาย สายถ่ายภาพ'}
-              </div>
-              <div
-                className={`text-[10px] font-semibold uppercase ${
-                  currentRole === 'admin' ? 'text-purple-400' : 'text-cyan-400'
-                }`}
-              >
-                {currentRole === 'admin' ? 'Administrator' : 'Customer Member'}
-              </div>
-            </div>
           </div>
 
         </div>
